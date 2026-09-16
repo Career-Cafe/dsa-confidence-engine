@@ -1,0 +1,21 @@
+package model
+
+type TestCase struct {
+	ID             string `json:"id" yaml:"id"`
+	Input          string `json:"input" yaml:"input"`
+	ExpectedOutput string `json:"expected_output" yaml:"expected_output"`
+	Description    string `json:"description,omitempty" yaml:"description,omitempty"`
+}
+
+type Problem struct {
+	ID                 string     `json:"id" yaml:"id"`
+	Title              string     `json:"title" yaml:"title"`
+	Description        string     `json:"description" yaml:"description"`
+	Language           string     `json:"language" yaml:"language"`
+	Entrypoint         string     `json:"entrypoint" yaml:"entrypoint"`
+	Tests              []TestCase `json:"tests" yaml:"tests"`
+	AcceptedStrategies []string   `json:"accepted_strategies" yaml:"accepted_strategies"`
+	RequiredConcepts   []string   `json:"required_concepts" yaml:"required_concepts"`
+	OptionalConcepts   []string   `json:"optional_concepts" yaml:"optional_concepts"`
+	PrimaryConcepts    []string   `json:"primary_concepts" yaml:"primary_concepts"`
+}

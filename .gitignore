@@ -1,0 +1,23 @@
+# Binaries
+server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts & databases
+*.db
+*.db-journal
+data/*.db
+data/*.db-journal
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
