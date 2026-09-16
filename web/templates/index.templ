@@ -1,0 +1,84 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/MishraShardendu22/dsa-confidence-engine/internal/model"
+)
+
+templ Index(problems []model.Problem) {
+	@Layout("Evaluate Submission") {
+		<div class="card">
+			<h2 class="card-header">Submission Evaluator</h2>
+			<form id="eval-form" method="POST" action="/evaluate">
+				<label for="problem-select">Select Problem</label>
+				<select id="problem-select" name="problem_id" onchange="onProblemChange()">
+					for _, p := range problems {
+						<option value={ p.ID } data-desc={ p.Description } data-entrypoint={ p.Entrypoint }>
+							{ fmt.Sprintf("%s (%s)", p.Title, p.ID) }
+						</option>
+					}
+				</select>
+
+				<div id="problem-details" style="margin-bottom: 16px; padding: 12px; background: #0d1117; border-radius: 6px; border: 1px solid #30363d; font-size: 0.85rem;">
+					<p id="problem-desc" style="color: #8b949e;"></p>
+				</div>
+
+				<div style="margin-bottom: 16px; display: flex; gap: 8px;">
+					<span style="font-size: 0.85rem; color: #8b949e; align-self: center;">Quick Pre-fills:</span>
+					<button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" onclick="prefillValid()">Valid Hashmap</button>
+					<button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" onclick="prefillIrrelevant()">Irrelevant Hashmap</button>
+					<button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" onclick="prefillMismatch()">Mismatch Claim</button>
+				</div>
+
+				<label for="explanation">Candidate Explanation of Intended Approach</label>
+				<textarea
+					id="explanation"
+					name="explanation"
+					rows="3"
+					placeholder="Describe your algorithm and data structures, e.g. I will use a hashmap to store seen elements and lookup complements in O(1)..."
+					required
+				></textarea>
+
+				<label for="source_code">Candidate Source Code (Python)</label>
+				<textarea
+					id="source_code"
+					name="source_code"
+					class="code-editor"
+					rows="12"
+					placeholder="def solve(nums, target):&#10;    ..."
+					required
+				></textarea>
+
+				<div style="display: flex; justify-content: flex-end;">
+					<button type="submit" class="btn" style="padding: 10px 24px; font-size: 1rem;">
+						Evaluate Approach Fidelity
+					</button>
+				</div>
+			</form>
+		</div>
+
+		<script>
+			function onProblemChange() {
+				const sel = document.getElementById("problem-select");
+				const opt = sel.options[sel.selectedIndex];
+				document.getElementById("problem-desc").innerText = opt.getAttribute("data-desc") || "";
+			}
+			onProblemChange();
+
+			function prefillValid() {
+				document.getElementById("explanation").value = "I'll store each number and its index in a hashmap, and then look up whether the target complement exists in constant time.";
+				document.getElementById("source_code").value = "def solve(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        diff = target - n\n        if diff in seen:\n            return [seen[diff], i]\n        seen[n] = i\n    return []";
+			}
+
+			function prefillIrrelevant() {
+				document.getElementById("explanation").value = "I will use two pointers and a hashmap to check frequencies.";
+				document.getElementById("source_code").value = "def solve(nums, target):\n    counts = {}\n    for x in nums:\n        counts[x] = counts.get(x, 0) + 1\n    # Hashmap above does not contribute to two pointers result below\n    left = 0\n    right = len(nums) - 1\n    while left < right:\n        s = nums[left] + nums[right]\n        if s == target:\n            return [left, right]\n        elif s < target:\n            left += 1\n        else:\n            right -= 1\n    return [0, 1]";
+			}
+
+			function prefillMismatch() {
+				document.getElementById("explanation").value = "I will use binary search to locate pairs in the array.";
+				document.getElementById("source_code").value = "def solve(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        diff = target - n\n        if diff in seen:\n            return [seen[diff], i]\n        seen[n] = i\n    return []";
+			}
+		</script>
+	}
+}
