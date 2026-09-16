@@ -1,0 +1,39 @@
+- id: greedy
+  name: Greedy
+  description: Making the locally optimal choice at each stage with the hope of finding a global optimum.
+  aliases:
+    - greedy
+    - greedy approach
+    - greedy algorithm
+    - greedy choice
+  keywords:
+    - greedy
+    - optimal
+    - local choice
+  explanation_examples:
+    - "greedily pick the interval with the earliest finish time"
+    - "make the best greedy move at each step"
+
+- id: interval_scheduling
+  name: Interval Scheduling Greedy
+  parent: greedy
+  description: Selecting maximum non-overlapping intervals by sorting by start or end time.
+  aliases:
+    - interval scheduling
+    - meeting rooms greedy
+    - non overlapping intervals
+  keywords:
+    - interval
+    - overlap
+    - schedule
+
+- id: jump_game_greedy
+  name: Reachability / Jump Game Greedy
+  parent: greedy
+  description: Tracking maximum reachable index dynamically.
+  aliases:
+    - max reachable index
+    - jump game greedy
+  keywords:
+    - jump
+    - reachable

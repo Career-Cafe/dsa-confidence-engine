@@ -1,0 +1,102 @@
+- id: graphs
+  name: Graphs
+  description: Non-linear data structure consisting of vertices (nodes) and edges.
+  aliases:
+    - graph
+    - graphs
+    - network
+    - adjacency list
+    - adjacency matrix
+  keywords:
+    - graph
+    - vertex
+    - edge
+    - neighbor
+    - adjacent
+
+- id: dfs
+  name: Depth-First Search (DFS)
+  parent: graphs
+  description: Graph and tree traversal exploring as far as possible along each branch before backtracking.
+  aliases:
+    - dfs
+    - depth first search
+    - depth first traversal
+  keywords:
+    - dfs
+    - depth
+    - explore
+    - visited
+  code_signals:
+    - recursive_dfs
+    - dfs_visited_set
+  explanation_examples:
+    - "run a depth-first search on the graph"
+    - "use DFS to traverse the connected components"
+
+- id: bfs
+  name: Breadth-First Search (BFS)
+  parent: graphs
+  description: Graph and tree traversal exploring all neighbors at current depth prior to advancing deeper.
+  aliases:
+    - bfs
+    - breadth first search
+    - breadth first traversal
+    - level order
+  keywords:
+    - bfs
+    - breadth
+    - level
+    - queue
+  code_signals:
+    - bfs_queue
+    - deque_popleft
+  explanation_examples:
+    - "run breadth-first search using a queue"
+    - "use BFS to find the shortest path in an unweighted graph"
+
+- id: topological_sort
+  name: Topological Sort
+  parent: graphs
+  description: Linear ordering of vertices such that for every directed edge u -> v, u comes before v.
+  aliases:
+    - topological sort
+    - topo sort
+    - kahn algorithm
+    - indegree bfs
+  keywords:
+    - topological
+    - indegree
+    - dag
+    - dependencies
+
+- id: union_find
+  name: Union Find / Disjoint Set Union (DSU)
+  parent: graphs
+  description: Data structure tracking elements partitioned into disjoint subsets with find and union operations.
+  aliases:
+    - union find
+    - dsu
+    - disjoint set
+    - disjoint set union
+  keywords:
+    - union
+    - find
+    - parent
+    - rank
+  code_signals:
+    - find_parent
+    - union_by_rank
+
+- id: dijkstra
+  name: Dijkstra's Algorithm
+  parent: graphs
+  description: Shortest path algorithm on non-negative weighted graphs using a priority queue.
+  aliases:
+    - dijkstra
+    - dijkstra algorithm
+    - shortest path heap
+  keywords:
+    - dijkstra
+    - shortest path
+    - weight

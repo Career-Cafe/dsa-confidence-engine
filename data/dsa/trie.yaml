@@ -1,0 +1,29 @@
+- id: trie
+  name: Trie (Prefix Tree)
+  description: Tree-like data structure used to efficiently store and retrieve keys in a dataset of strings.
+  aliases:
+    - trie
+    - prefix tree
+    - retrieval tree
+  keywords:
+    - trie
+    - prefix
+    - word
+    - children
+  code_signals:
+    - trie_node
+    - trie_insert
+    - trie_search
+
+- id: bitwise_trie
+  name: Bitwise / 0-1 Trie
+  parent: trie
+  description: Trie storing binary bit representations of integers to maximize XOR values.
+  aliases:
+    - 0-1 trie
+    - binary trie
+    - bitwise trie
+    - max xor trie
+  keywords:
+    - bitwise trie
+    - max xor

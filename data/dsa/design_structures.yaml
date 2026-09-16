@@ -1,0 +1,39 @@
+- id: design_structures
+  name: Design Data Structures
+  description: Composing multiple basic structures to implement custom constraints and complex access contracts.
+  aliases:
+    - design data structures
+    - system design data structures
+  keywords:
+    - design
+    - cache
+    - composite
+
+- id: lru_cache
+  name: LRU Cache
+  parent: design_structures
+  description: Least Recently Used cache combining a hashmap with a doubly linked list for O(1) access and eviction.
+  aliases:
+    - lru cache
+    - least recently used
+    - lru
+  keywords:
+    - lru
+    - cache
+    - doubly linked list
+  related_concepts:
+    - hashmap
+    - linked_list
+
+- id: lfu_cache
+  name: LFU Cache
+  parent: design_structures
+  description: Least Frequently Used cache combining frequency buckets with doubly linked lists and hashmaps.
+  aliases:
+    - lfu cache
+    - least frequently used
+    - lfu
+  keywords:
+    - lfu
+    - frequency
+    - cache

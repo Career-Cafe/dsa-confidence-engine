@@ -1,0 +1,78 @@
+- id: sliding_window
+  name: Sliding Window
+  description: Subarray or substring range bounded by two pointers maintaining a dynamic window invariant.
+  aliases:
+    - sliding window
+    - moving window
+    - dynamic window
+    - window technique
+  keywords:
+    - window
+    - subarray
+    - substring
+    - expand
+    - shrink
+  code_signals:
+    - window_expansion
+    - window_contraction
+    - window_invariant
+  explanation_examples:
+    - "maintain a sliding window and expand the right pointer"
+    - "shrink the window from the left when condition is violated"
+
+- id: fixed_size_sliding_window
+  name: Fixed-Size Sliding Window
+  parent: sliding_window
+  description: Window with constant width k sliding across an array.
+  aliases:
+    - fixed window
+    - fixed size window
+    - window of size k
+  keywords:
+    - fixed
+    - size k
+    - constant width
+
+- id: variable_size_sliding_window
+  name: Variable-Size Sliding Window
+  parent: sliding_window
+  description: Window dynamically expanding the right pointer and contracting the left pointer based on predicates.
+  aliases:
+    - variable window
+    - flexible window
+    - dynamic size window
+  keywords:
+    - expand
+    - contract
+    - dynamic
+
+- id: sliding_window_frequency_map
+  name: Sliding Window + Frequency Map
+  parent: sliding_window
+  description: Maintaining character or number frequencies inside a sliding window.
+  aliases:
+    - sliding window map
+    - sliding window counter
+    - window frequency map
+  keywords:
+    - count
+    - frequency
+    - window
+  related_concepts:
+    - hashmap
+    - frequency_count
+
+- id: sliding_window_hashset
+  name: Sliding Window + HashSet
+  parent: sliding_window
+  description: Maintaining unique items inside a window to guarantee duplicate-free spans.
+  aliases:
+    - sliding window set
+    - window hashset
+    - window unique set
+  keywords:
+    - unique
+    - set
+    - window
+  related_concepts:
+    - hashset

@@ -1,0 +1,13 @@
+- id: line_sweep
+  name: Line Sweep
+  description: Algorithmic pattern processing geometric events or intervals in sorted order as an imaginary vertical or horizontal line sweeps through space.
+  aliases:
+    - line sweep
+    - sweep line
+    - sweep-line algorithm
+    - event point schedule
+  keywords:
+    - sweep
+    - event
+    - timeline
+    - boundary

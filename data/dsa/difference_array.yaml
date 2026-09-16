@@ -1,0 +1,11 @@
+- id: difference_array
+  name: Difference Array
+  description: Array technique allowing range update queries [L, R] += val in O(1) time and computing final array via prefix sum in O(n).
+  aliases:
+    - difference array
+    - diff array
+    - range updates
+  keywords:
+    - difference
+    - range update
+    - delta

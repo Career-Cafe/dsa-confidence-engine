@@ -1,0 +1,24 @@
+- id: segment_tree
+  name: Segment Tree
+  description: Tree data structure used for storing information about intervals or segments, answering range queries in O(log n).
+  aliases:
+    - segment tree
+    - seg tree
+    - range tree
+  keywords:
+    - segment
+    - range query
+    - tree
+
+- id: fenwick_tree
+  name: Fenwick Tree (Binary Indexed Tree)
+  parent: segment_tree
+  description: Data structure efficiently updating elements and calculating prefix sums in a table of numbers in O(log n).
+  aliases:
+    - fenwick tree
+    - bit
+    - binary indexed tree
+  keywords:
+    - fenwick
+    - bit
+    - lsb

@@ -1,0 +1,46 @@
+- id: backtracking
+  name: Backtracking
+  description: Incrementally building candidates to solutions and abandoning (backtracking) a candidate as soon as it cannot lead to a valid solution.
+  aliases:
+    - backtracking
+    - backtrack
+    - explore paths
+    - depth first search with rollback
+  keywords:
+    - backtrack
+    - state
+    - prune
+    - rollback
+  code_signals:
+    - recursive_helper
+    - append_pop_rollback
+  explanation_examples:
+    - "use backtracking to generate all permutations"
+    - "try each possibility and backtrack when invalid"
+
+- id: permutations_combinations
+  name: Permutations and Combinations
+  parent: backtracking
+  description: Generating all permutations, combinations, or subsets.
+  aliases:
+    - permutations
+    - combinations
+    - subsets
+    - power set
+  keywords:
+    - subset
+    - permutation
+    - combination
+
+- id: n_queens
+  name: Constraint Satisfaction (N-Queens / Sudoku)
+  parent: backtracking
+  description: Placing elements on a grid satisfying complex mutual constraints with pruning.
+  aliases:
+    - n queens
+    - sudoku solver
+    - constraint satisfaction
+  keywords:
+    - queens
+    - board
+    - constraint

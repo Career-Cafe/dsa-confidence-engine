@@ -1,0 +1,108 @@
+- id: binary_search
+  name: Binary Search
+  description: Halving search space logarithmically in sorted or monotonic domains.
+  aliases:
+    - binary search
+    - bsearch
+    - bisect
+    - logarithmic search
+    - half interval search
+  keywords:
+    - mid
+    - binary
+    - search
+    - low
+    - high
+    - bisect
+  code_signals:
+    - mid_calculation
+    - bisect_left
+    - bisect_right
+    - binary_split
+
+- id: binary_search_classic
+  name: Classic Binary Search
+  parent: binary_search
+  description: Finding target index in a strictly sorted 1D array.
+  aliases:
+    - classic binary search
+    - standard binary search
+    - sorted array binary search
+  keywords:
+    - target
+    - sorted
+    - mid
+
+- id: binary_search_rotated
+  name: Rotated Sorted Array Binary Search
+  parent: binary_search
+  description: Binary search on shifted or rotated monotonic sequences.
+  aliases:
+    - rotated sorted array
+    - search in rotated sorted array
+    - rotated array search
+  keywords:
+    - rotated
+    - pivot
+
+- id: binary_search_answer
+  name: Binary Search on Answer
+  parent: binary_search
+  description: Binary search over the range of possible answers paired with a feasibility predicate.
+  aliases:
+    - binary search on answer
+    - binary search on solution
+    - bsearch on answer
+  keywords:
+    - feasibility
+    - predicate
+    - range
+
+- id: binary_search_minimize_max
+  name: Minimize Maximum
+  parent: binary_search_answer
+  description: Using binary search on answer to find the minimum possible maximum allocation or load.
+  aliases:
+    - minimize maximum
+    - min of max
+    - minimize the maximum
+  keywords:
+    - minimize
+    - maximum
+
+- id: binary_search_maximize_min
+  name: Maximize Minimum
+  parent: binary_search_answer
+  description: Using binary search on answer to find the maximum possible minimum separation or distance.
+  aliases:
+    - maximize minimum
+    - max of min
+    - maximize the minimum
+  keywords:
+    - maximize
+    - minimum
+
+- id: binary_search_time
+  name: Binary Search on Time
+  parent: binary_search_answer
+  description: Finding minimal completion time for concurrent workers or operations.
+  aliases:
+    - binary search on time
+    - search time
+  keywords:
+    - time
+    - speed
+    - rate
+
+- id: binary_search_2d
+  name: Binary Search on 2-D Matrix
+  parent: binary_search
+  description: Logarithmic search over sorted rows and columns in 2D matrices.
+  aliases:
+    - binary search 2d
+    - matrix binary search
+    - search a 2d matrix
+  keywords:
+    - matrix
+    - row
+    - col

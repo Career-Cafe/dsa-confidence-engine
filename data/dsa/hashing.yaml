@@ -1,0 +1,162 @@
+- id: hashing
+  name: Hashing
+  description: Techniques utilizing hash functions for constant-time average lookup, insertion, and deletion.
+  aliases:
+    - hash
+    - hashing
+    - hash based
+  keywords:
+    - hash
+    - table
+    - bucket
+
+- id: hashmap
+  name: Hash Map
+  parent: hashing
+  description: Key-value associative mapping data structure.
+  aliases:
+    - hash map
+    - hashmap
+    - dictionary
+    - dict
+    - lookup table
+    - key value map
+    - map of seen values
+    - hash table
+    - frequency map
+    - frequency table
+  keywords:
+    - dict
+    - map
+    - key
+    - value
+    - lookup
+  related_concepts:
+    - hashset
+    - frequency_count
+  confusable_concepts:
+    - hashset
+  code_signals:
+    - dict_allocation
+    - dict_write
+    - dict_read
+    - dict_get
+  explanation_examples:
+    - "use a hash map to store seen elements"
+    - "store values in a dictionary for quick lookup"
+
+- id: hashset
+  name: Hash Set
+  parent: hashing
+  description: Collection of unique keys with constant-time membership checking.
+  aliases:
+    - hash set
+    - hashset
+    - set
+    - set of seen
+    - seen set
+    - visited set
+  keywords:
+    - set
+    - seen
+    - contains
+    - visited
+  related_concepts:
+    - hashmap
+  confusable_concepts:
+    - hashmap
+  code_signals:
+    - set_allocation
+    - set_add
+    - set_membership
+  explanation_examples:
+    - "maintain a set of visited characters"
+    - "store visited numbers in a hashset"
+
+- id: frequency_count
+  name: HashMap Frequency Counting
+  parent: hashmap
+  description: Counting occurrences of elements using a hashmap or frequency array.
+  aliases:
+    - frequency counting
+    - frequency count
+    - character count
+    - element count
+    - tally
+    - counter
+    - count occurrences
+  keywords:
+    - count
+    - freq
+    - frequency
+    - tally
+    - occurrences
+  related_concepts:
+    - hashmap
+  code_signals:
+    - dict_increment
+    - collections_counter
+  explanation_examples:
+    - "count the frequency of each element using a dictionary"
+    - "tally counts in a hash map"
+
+- id: hashset_membership
+  name: HashSet Membership
+  parent: hashset
+  description: Using a set to track already seen items and verify membership in O(1).
+  aliases:
+    - set membership
+    - check seen
+    - duplicate detection
+    - duplicate check
+  keywords:
+    - seen
+    - membership
+    - contains
+  related_concepts:
+    - hashset
+
+- id: prefix_sum_hashmap
+  name: Prefix Sum + HashMap
+  parent: hashmap
+  description: Storing cumulative sums in a hashmap to find subarray sums in O(1).
+  aliases:
+    - prefix sum hashmap
+    - prefix sum map
+    - prefix sum with hashmap
+    - cumulative sum map
+  keywords:
+    - prefix
+    - sum
+    - cumulative
+    - subarray
+  related_concepts:
+    - hashmap
+    - prefix_sum
+
+- id: hashmap_bijection
+  name: Mapping / Bijection
+  parent: hashmap
+  description: One-to-one or isomorphic mappings between characters or strings.
+  aliases:
+    - bijection
+    - isomorphic mapping
+    - character mapping
+    - one to one mapping
+  keywords:
+    - bijection
+    - isomorphic
+    - map
+
+- id: hashing_geometry
+  name: Hashing + Geometry / Grid
+  parent: hashing
+  description: Using coordinates or slopes as hashmap keys for geometric problems.
+  aliases:
+    - coordinate hashing
+    - slope hashing
+    - grid hashing
+  keywords:
+    - slope
+    - coordinate
+    - point

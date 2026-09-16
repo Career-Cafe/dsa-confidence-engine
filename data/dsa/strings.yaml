@@ -1,0 +1,47 @@
+- id: strings
+  name: Strings
+  description: Sequence of characters and string processing algorithms.
+  aliases:
+    - string
+    - strings
+    - character sequence
+  keywords:
+    - string
+    - char
+    - substring
+
+- id: string_matching
+  name: String Pattern Matching
+  parent: strings
+  description: Locating occurrences of a pattern within a text.
+  aliases:
+    - string matching
+    - pattern search
+    - substring search
+  keywords:
+    - pattern
+    - match
+
+- id: kmp
+  name: Knuth-Morris-Pratt (KMP)
+  parent: string_matching
+  description: Linear time string matching algorithm utilizing longest prefix suffix table.
+  aliases:
+    - kmp
+    - knuth morris pratt
+    - lps table
+  keywords:
+    - kmp
+    - lps
+
+- id: rabin_karp
+  name: Rabin-Karp Rolling Hash
+  parent: string_matching
+  description: String matching using polynomial rolling hash functions.
+  aliases:
+    - rabin karp
+    - rolling hash
+    - polynomial hash
+  keywords:
+    - rolling hash
+    - rabin karp

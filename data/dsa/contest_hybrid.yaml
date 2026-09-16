@@ -1,0 +1,23 @@
+- id: contest_hybrid
+  name: Contest / Hybrid Patterns
+  description: Hybrid patterns combining multiple algorithms such as square root decomposition or Mo's algorithm.
+  aliases:
+    - contest patterns
+    - hybrid patterns
+    - contest hybrid
+  keywords:
+    - sqrt
+    - decomposition
+    - mos
+
+- id: sqrt_decomposition
+  name: Square Root Decomposition
+  parent: contest_hybrid
+  description: Dividing an array into blocks of size sqrt(N) to answer range updates and queries in O(sqrt(N)).
+  aliases:
+    - sqrt decomposition
+    - square root decomposition
+    - sqrt blocks
+  keywords:
+    - sqrt
+    - blocks

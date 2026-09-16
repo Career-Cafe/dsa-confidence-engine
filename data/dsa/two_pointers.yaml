@@ -1,0 +1,82 @@
+- id: two_pointers
+  name: Two Pointers
+  description: Algorithmic pattern tracking two index positions concurrently to iterate through linear sequences.
+  aliases:
+    - two pointers
+    - two pointer
+    - dual pointer
+    - twin pointers
+    - pointer technique
+  keywords:
+    - pointer
+    - left
+    - right
+    - index
+    - inward
+  code_signals:
+    - left_right_pointers
+    - while_left_less_than_right
+    - pointer_increment_decrement
+  explanation_examples:
+    - "use two pointers moving inward from both ends"
+    - "maintain left and right pointers"
+
+- id: opposite_end_pointers
+  name: Opposite-End Pointers
+  parent: two_pointers
+  description: Left and right pointers initialized at opposite ends of an array/string moving inward towards each other.
+  aliases:
+    - opposite end pointers
+    - left and right pointers
+    - start and end pointers
+    - two indices moving inward
+    - opposite end scan
+    - convergent pointers
+    - both ends
+    - opposite ends
+    - pointers from both ends
+    - pointers from opposite ends
+  keywords:
+    - inward
+    - left
+    - right
+    - ends
+  code_signals:
+    - left_zero_right_len_minus_one
+    - left_plus_one_right_minus_one
+  explanation_examples:
+    - "start one pointer at the beginning and one at the end"
+    - "move pointers towards each other until they meet"
+
+- id: fast_and_slow_pointers
+  name: Fast and Slow Pointers
+  parent: two_pointers
+  description: Pointers advancing at different speeds to detect cycles or find midpoints.
+  aliases:
+    - fast and slow pointers
+    - tortoise and hare
+    - cycle detection pointers
+    - slow fast
+  keywords:
+    - slow
+    - fast
+    - cycle
+    - tortoise
+    - hare
+  code_signals:
+    - fast_step_2_slow_step_1
+
+- id: three_pointers
+  name: Three Pointers / Multi-Pointer
+  parent: two_pointers
+  description: Using three or more pointers simultaneously, such as in Dutch National Flag 3-way partitioning.
+  aliases:
+    - three pointers
+    - dutch national flag
+    - 3-way partitioning
+    - low mid high pointers
+  keywords:
+    - low
+    - mid
+    - high
+    - partition
