@@ -1,0 +1,106 @@
+package analysis
+
+import (
+	"strings"
+)
+
+type FunctionRelevance struct {
+	RelevantVars map[string]bool
+}
+
+// ComputeOutputRelevance computes backward dataflow slice from return statements
+// of all reachable functions.
+func ComputeOutputRelevance(reachableFuncs map[string]*FunctionNode) map[string]*FunctionRelevance {
+	relevanceMap := make(map[string]*FunctionRelevance, len(reachableFuncs))
+
+	for name, fn := range reachableFuncs {
+		relevant := make(map[string]bool)
+
+		// 1. Seed with variables directly present in Return statements
+		for _, ret := range fn.Returns {
+			for _, v := range ret.Vars {
+				relevant[v] = true
+			}
+			// Also inspect raw return expression for variable tokens
+			if ret.Raw != "" {
+				for _, op := range fn.Operations {
+					if op.Var != "" && strings.Contains(ret.Raw, op.Var) {
+						relevant[op.Var] = true
+					}
+				}
+			}
+		}
+
+		// 2. Backward propagation loop until convergence
+		changed := true
+		for changed {
+			changed = false
+
+			// Check var defs: if target var is relevant, all its deps are relevant
+			for varName, def := range fn.VarDefs {
+				if relevant[varName] {
+					for _, dep := range def.Deps {
+						if !relevant[dep] {
+							relevant[dep] = true
+							changed = true
+						}
+					}
+				}
+			}
+
+			// Check mutations: if target var is mutated by other variables
+			for _, mut := range fn.VarMutations {
+				if relevant[mut.Var] {
+					for _, d := range mut.ValDeps {
+						if !relevant[d] {
+							relevant[d] = true
+							changed = true
+						}
+					}
+					for _, k := range mut.KeyDeps {
+						if !relevant[k] {
+							relevant[k] = true
+							changed = true
+						}
+					}
+				}
+			}
+
+			// Check reads: if a read influences an assignment to a relevant variable
+			for _, r := range fn.VarReads {
+				for varName, def := range fn.VarDefs {
+					if relevant[varName] {
+						for _, dep := range def.Deps {
+							if dep == r.Var && !relevant[r.Var] {
+								relevant[r.Var] = true
+								changed = true
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// 3. If a while loop condition guards a return or early exit
+		for _, wl := range fn.WhileLoops {
+			hasReturnInside := len(fn.Returns) > 0
+			if hasReturnInside {
+				for _, cv := range wl.CondVars {
+					relevant[cv] = true
+				}
+			}
+		}
+
+		relevanceMap[name] = &FunctionRelevance{RelevantVars: relevant}
+	}
+
+	return relevanceMap
+}
+
+// IsVariableOutputRelevant checks whether the given variable name belongs to the backward slice.
+func IsVariableOutputRelevant(relevanceMap map[string]*FunctionRelevance, funcName, varName string) bool {
+	if rel, ok := relevanceMap[funcName]; ok {
+		return rel.RelevantVars[varName]
+	}
+	return false
+}

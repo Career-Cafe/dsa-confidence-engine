@@ -1,0 +1,111 @@
+package analysis
+
+type FunctionNode struct {
+	Name         string                `json:"name"`
+	ParentName   string                `json:"parent_name"`
+	LineNo       int                   `json:"lineno"`
+	EndLineNo    int                   `json:"end_lineno"`
+	Args         []string              `json:"args"`
+	Calls        []CallNode            `json:"calls"`
+	Returns      []ReturnNode          `json:"returns"`
+	VarDefs      map[string]VarDefNode `json:"var_defs"`
+	VarMutations []VarMutationNode     `json:"var_mutations"`
+	VarReads     []VarReadNode         `json:"var_reads"`
+	Operations   []OperationNode       `json:"operations"`
+	WhileLoops   []WhileLoopNode       `json:"while_loops"`
+	Reachable    bool                  `json:"-"`
+}
+
+type CallNode struct {
+	Name    string   `json:"name"`
+	LineNo  int      `json:"lineno"`
+	ArgVars []string `json:"arg_vars"`
+}
+
+type ReturnNode struct {
+	LineNo int      `json:"lineno"`
+	Vars   []string `json:"vars"`
+	Raw    string   `json:"raw"`
+}
+
+type VarDefNode struct {
+	LineNo int      `json:"lineno"`
+	Deps   []string `json:"deps"`
+	Kind   string   `json:"kind"`
+}
+
+type VarMutationNode struct {
+	Var     string   `json:"var"`
+	LineNo  int      `json:"lineno"`
+	KeyDeps []string `json:"key_deps"`
+	ValDeps []string `json:"val_deps"`
+	Kind    string   `json:"kind"`
+}
+
+type VarReadNode struct {
+	Var     string   `json:"var"`
+	LineNo  int      `json:"lineno"`
+	KeyVars []string `json:"key_vars"`
+	Kind    string   `json:"kind"`
+}
+
+type OperationNode struct {
+	Type   string `json:"type"`
+	LineNo int    `json:"lineno"`
+	Var    string `json:"var,omitempty"`
+	Op     string `json:"op,omitempty"`
+	Target string `json:"target,omitempty"`
+}
+
+type WhileLoopNode struct {
+	LineNo   int      `json:"lineno"`
+	CondVars []string `json:"cond_vars"`
+	Expr     string   `json:"expr"`
+}
+
+// ComputeReachableFunctions performs BFS from entrypoint to find reachable functions.
+func ComputeReachableFunctions(functions []FunctionNode, entrypoint string) map[string]*FunctionNode {
+	funcMap := make(map[string]*FunctionNode, len(functions))
+	for i := range functions {
+		funcMap[functions[i].Name] = &functions[i]
+	}
+
+	reachable := make(map[string]*FunctionNode)
+	entry, exists := funcMap[entrypoint]
+	if !exists {
+		if len(functions) == 1 {
+			entry = &functions[0]
+		} else {
+			return reachable
+		}
+	}
+
+	queue := []*FunctionNode{entry}
+	entry.Reachable = true
+	reachable[entry.Name] = entry
+
+	for len(queue) > 0 {
+		curr := queue[0]
+		queue = queue[1:]
+
+		// 1. Direct calls
+		for _, call := range curr.Calls {
+			if target, found := funcMap[call.Name]; found && !target.Reachable {
+				target.Reachable = true
+				reachable[target.Name] = target
+				queue = append(queue, target)
+			}
+		}
+
+		// 2. Nested child functions defined inside curr
+		for _, target := range funcMap {
+			if target.ParentName == curr.Name && !target.Reachable {
+				target.Reachable = true
+				reachable[target.Name] = target
+				queue = append(queue, target)
+			}
+		}
+	}
+
+	return reachable
+}
