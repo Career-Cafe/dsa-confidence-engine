@@ -1073,4 +1073,3 @@ func (d *ArraysDetector) Detect(
 
 	return concepts
 }
-

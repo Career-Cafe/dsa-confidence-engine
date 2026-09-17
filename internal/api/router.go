@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/a-h/templ"
-	"github.com/gofiber/fiber/v2"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/dsa"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/model"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/service"
 	"github.com/MishraShardendu22/dsa-confidence-engine/web/templates"
+	"github.com/a-h/templ"
+	"github.com/gofiber/fiber/v2"
 )
 
 type ProblemHandler interface {
