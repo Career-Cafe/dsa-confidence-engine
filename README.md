@@ -91,7 +91,25 @@ The ontology lives in modular YAML files (`data/dsa/*.yaml`) across 29 categorie
 - Python 3.10+
 - `templ` CLI (`go install github.com/a-h/templ/cmd/templ@latest`)
 
-### Build and Launch
+### Quick Start with Make
+```bash
+# Generate templates and start the application
+make run
+
+# Run full automated test suite
+make test
+
+# Run tests with race detector
+make test-race
+
+# Build production binary
+make build
+
+# View all available targets
+make help
+```
+
+### Manual Build and Launch
 ```bash
 # 1. Compile Templ templates
 templ generate
@@ -104,15 +122,6 @@ go build -o server ./cmd/server
 ```
 
 The web interface will be accessible at `http://localhost:8080`.
-
-### Running Automated Test Suite
-```bash
-# Run all unit, integration, and adversarial suites
-go test -v ./...
-
-# Run with race detector
-go test -race ./...
-```
 
 ---
 
