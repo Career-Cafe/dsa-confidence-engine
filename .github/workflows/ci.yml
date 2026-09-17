@@ -1,0 +1,116 @@
+# ==============================================================================
+# GitHub Actions — Continuous Integration (Go Build & Test)
+# ==============================================================================
+#
+# PURPOSE:
+#   Runs the full CI validation pipeline on every push to any branch and on
+#   every Pull Request targeting main. Acts as the automated quality gate
+#   that mirrors `make pre-commit` locally.
+#
+# JOBS:
+#   1. go-lint    — gofmt formatting check (zero formatting drift allowed)
+#   2. go-test    — go test -v -race ./... (race-condition-safe unit + integration tests)
+#   3. go-build   — go build ./... (confirms zero compilation errors)
+#
+# SKILL REFERENCE:
+#   .agents/skills/ci-cd-workflow/SKILL.md — Section 2 & 3
+#   .agents/skills/github-pr-issue-automation/SKILL.md — Section 5
+# ==============================================================================
+name: "CI — Go Build & Test"
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.25"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 1: Format Check (gofmt)
+  # ─────────────────────────────────────────────────────────────────────────────
+  go-lint:
+    name: "Go — Format Check (gofmt)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "Set Up Go ${{ env.GO_VERSION }}"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "Verify gofmt formatting"
+        run: |
+          UNFORMATTED=$(gofmt -l .)
+          if [ -n "$UNFORMATTED" ]; then
+            echo "❌ The following files are not gofmt-formatted:"
+            echo "$UNFORMATTED"
+            echo "Run 'gofmt -w .' locally to fix."
+            exit 1
+          fi
+          echo "✅ All Go files are correctly formatted."
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 2: Test Suite (go test -race)
+  # ─────────────────────────────────────────────────────────────────────────────
+  go-test:
+    name: "Go — Test Suite (race detector)"
+    runs-on: ubuntu-latest
+    needs: go-lint
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "Set Up Go ${{ env.GO_VERSION }}"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "Download Dependencies"
+        run: go mod download
+
+      - name: "Run Tests with Race Detector"
+        run: go test -v -race -count=1 ./...
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 3: Build Check
+  # ─────────────────────────────────────────────────────────────────────────────
+  go-build:
+    name: "Go — Build Check"
+    runs-on: ubuntu-latest
+    needs: go-lint
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "Set Up Go ${{ env.GO_VERSION }}"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "Download Dependencies"
+        run: go mod download
+
+      - name: "Build All Packages"
+        run: go build -v ./...
+
+      - name: "Verify go.mod is Tidy"
+        run: |
+          go mod tidy
+          if ! git diff --exit-code go.mod go.sum; then
+            echo "❌ go.mod/go.sum are not tidy. Run 'go mod tidy' locally."
+            exit 1
+          fi
+          echo "✅ go.mod and go.sum are tidy."

@@ -1,0 +1,59 @@
+# ==============================================================================
+# GitHub Actions — Automatic Remote Feature Branch Cleanup on PR Close/Merge
+# ==============================================================================
+#
+# PURPOSE:
+#   Automatically deletes the remote feature branch when a Pull Request is
+#   closed (either merged into main or closed without merging). This prevents
+#   stale remote branch buildup and keeps the GitHub branch list clean.
+#
+# SKILL REFERENCE:
+#   .agents/skills/git-post-merge-cleanup/SKILL.md — Section 4
+#   .agents/skills/github-pr-issue-automation/SKILL.md — Section 5
+#
+# SAFETY GUARDS:
+#   - Never deletes 'main' or 'master'
+#   - Only runs on branches from the same repo (not forks)
+#   - Silently skips if branch was already deleted
+# ==============================================================================
+name: "PR Closed — Remote Branch Cleanup"
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup-closed-branch:
+    name: "Delete Closed Remote Branch"
+    # Only run on branches from the same repo (not forks) and never delete main/master
+    if: >
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref != 'main' &&
+      github.event.pull_request.head.ref != 'master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Delete Remote Feature Branch"
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const headRef = context.payload.pull_request.head.ref;
+            const isMerged = context.payload.pull_request.merged;
+            core.info(`PR ${context.payload.pull_request.number} closed. Branch: ${headRef} | Merged: ${isMerged}`);
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${headRef}`
+              });
+              core.info(`✅ Successfully deleted remote branch: ${headRef}`);
+            } catch (error) {
+              if (error.status === 422 || error.status === 404) {
+                core.info(`ℹ️  Remote branch '${headRef}' was already deleted or not found — skipping.`);
+              } else {
+                core.setFailed(`❌ Failed to delete remote branch '${headRef}': ${error.message}`);
+              }
+            }

@@ -1,0 +1,72 @@
+# ==============================================================================
+# GitHub Actions — Automatic Jules AI Engineer Review Assignment on Pull Request
+# ==============================================================================
+#
+# PURPOSE:
+#   Automatically assigns @google-labs-jules[bot] as a reviewer on every Pull
+#   Request when it is opened, updated (synchronize), or re-opened. This
+#   triggers the Jules multi-dimensional review loop described in:
+#   .agents/skills/jules-ai-engineering-workflow/SKILL.md
+#
+# HOW JULES IS TRIGGERED:
+#   Jules (jules.google.com) monitors GitHub for reviewer assignments. When
+#   @google-labs-jules[bot] is assigned as a reviewer via the GitHub API,
+#   Jules wakes up, clones the branch, and runs its 38-dimension staff-grade
+#   review pipeline, posting detailed review comments on the PR thread.
+#
+# PREREQUISITE:
+#   The Jules GitHub App must be installed in the Career-Cafe GitHub org:
+#   https://jules.google.com → "Install Jules on GitHub"
+#
+# SKILL REFERENCE:
+#   .agents/skills/jules-ai-engineering-workflow/SKILL.md — Section 5
+#   .agents/skills/github-pr-issue-automation/SKILL.md — Section 5
+# ==============================================================================
+name: "PR Opened — Assign Jules AI Reviewer"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign-jules-reviewer:
+    name: "Assign Jules Bot as PR Reviewer"
+    # Skip draft PRs — only review when a PR is ready
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Request Jules Review"
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const headSha = context.payload.pull_request.head.sha;
+            const eventAction = context.payload.action;
+            core.info(`PR #${prNumber} [${eventAction}] — requesting Jules review on ${headSha}`);
+
+            // Only re-request on 'opened' and 'reopened'; for 'synchronize' (new commits),
+            // Jules automatically re-reviews once assigned. Skip duplicate assignment.
+            if (eventAction === 'synchronize') {
+              core.info('ℹ️  New commits pushed — Jules will automatically re-review the updated PR. Skipping re-assignment.');
+              return;
+            }
+
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                reviewers: ['google-labs-jules[bot]']
+              });
+              core.info(`✅ Jules (@google-labs-jules[bot]) assigned as reviewer for PR #${prNumber}.`);
+            } catch (error) {
+              // Jules bot not installed or not authorized — warn but don't fail the workflow
+              core.warning(`⚠️  Could not assign Jules reviewer: ${error.message}`);
+              core.warning('Ensure the Jules GitHub App is installed: https://jules.google.com');
+            }
