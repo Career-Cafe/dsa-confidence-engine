@@ -75,7 +75,11 @@ templ Evaluation(eval *model.Evaluation) {
 			<div class="card">
 				<h3 class="card-header">Point B: Claimed Concepts (Explanation)</h3>
 				if len(eval.ClaimedConcepts) == 0 {
-					<p style="color: #8b949e; font-size: 0.9rem;">No DSA concepts detected in explanation.</p>
+					if eval.TestResult == model.TestStatusFail {
+						<p style="color: #8b949e; font-size: 0.85rem; font-style: italic;">Evaluation halted at Test Gate. Claimed concept extraction was skipped because candidate code failed required test cases.</p>
+					} else {
+						<p style="color: #8b949e; font-size: 0.9rem;">No DSA concepts detected in explanation.</p>
+					}
 				} else {
 					<table>
 						<thead>
@@ -104,7 +108,11 @@ templ Evaluation(eval *model.Evaluation) {
 			<div class="card">
 				<h3 class="card-header">Point A: Detected Concepts (Code Analysis)</h3>
 				if len(eval.ActualConcepts) == 0 {
-					<p style="color: #8b949e; font-size: 0.9rem;">No DSA concepts detected in code.</p>
+					if eval.TestResult == model.TestStatusFail {
+						<p style="color: #8b949e; font-size: 0.85rem; font-style: italic;">Evaluation halted at Test Gate. Static program analysis was skipped because candidate code failed required test cases.</p>
+					} else {
+						<p style="color: #8b949e; font-size: 0.9rem;">No DSA concepts detected in code.</p>
+					}
 				} else {
 					<table>
 						<thead>

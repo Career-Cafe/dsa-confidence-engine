@@ -46,7 +46,7 @@ func Index(problems []model.Problem) templ.Component {
 				}()
 			}
 			ctx = templ.InitializeContext(ctx)
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"card\"><h2 class=\"card-header\">Submission Evaluator</h2><form id=\"eval-form\" method=\"POST\" action=\"/evaluate\"><label for=\"problem-select\">Select Problem</label> <select id=\"problem-select\" name=\"problem_id\" onchange=\"onProblemChange()\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"card\"><h2 class=\"card-header\">Submission Evaluator</h2><form id=\"eval-form\" method=\"POST\" action=\"/evaluate\"><label for=\"problem-select\">Select Problem</label> <select id=\"problem-select\" name=\"problem_id\" onchange=\"onProblemChange(false)\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -58,7 +58,7 @@ func Index(problems []model.Problem) templ.Component {
 				var templ_7745c5c3_Var3 string
 				templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 16, Col: 26}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 17, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 				if templ_7745c5c3_Err != nil {
@@ -71,7 +71,7 @@ func Index(problems []model.Problem) templ.Component {
 				var templ_7745c5c3_Var4 string
 				templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Description)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 16, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 18, Col: 32}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 				if templ_7745c5c3_Err != nil {
@@ -84,31 +84,44 @@ func Index(problems []model.Problem) templ.Component {
 				var templ_7745c5c3_Var5 string
 				templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.Entrypoint)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 16, Col: 87}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 19, Col: 37}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" data-starter=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var6 string
-				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s (%s)", p.Title, p.ID))
+				templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(p.StarterCode)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 17, Col: 46}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 20, Col: 35}
 				}
-				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</option>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\">")
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				var templ_7745c5c3_Var7 string
+				templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%s (%s)", p.Title, p.ID))
+				if templ_7745c5c3_Err != nil {
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/templates/index.templ`, Line: 22, Col: 46}
+				}
+				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+				if templ_7745c5c3_Err != nil {
+					return templ_7745c5c3_Err
+				}
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</option>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</select><div id=\"problem-details\" style=\"margin-bottom: 16px; padding: 12px; background: #0d1117; border-radius: 6px; border: 1px solid #30363d; font-size: 0.85rem;\"><p id=\"problem-desc\" style=\"color: #8b949e;\"></p></div><div style=\"margin-bottom: 16px; display: flex; gap: 8px;\"><span style=\"font-size: 0.85rem; color: #8b949e; align-self: center;\">Quick Pre-fills:</span> <button type=\"button\" class=\"btn btn-secondary\" style=\"font-size: 0.8rem; padding: 4px 8px;\" onclick=\"prefillValid()\">Valid Hashmap</button> <button type=\"button\" class=\"btn btn-secondary\" style=\"font-size: 0.8rem; padding: 4px 8px;\" onclick=\"prefillIrrelevant()\">Irrelevant Hashmap</button> <button type=\"button\" class=\"btn btn-secondary\" style=\"font-size: 0.8rem; padding: 4px 8px;\" onclick=\"prefillMismatch()\">Mismatch Claim</button></div><label for=\"explanation\">Candidate Explanation of Intended Approach</label> <textarea id=\"explanation\" name=\"explanation\" rows=\"3\" placeholder=\"Describe your algorithm and data structures, e.g. I will use a hashmap to store seen elements and lookup complements in O(1)...\" required></textarea> <label for=\"source_code\">Candidate Source Code (Python)</label> <textarea id=\"source_code\" name=\"source_code\" class=\"code-editor\" rows=\"12\" placeholder=\"def solve(nums, target):&#10;    ...\" required></textarea><div style=\"display: flex; justify-content: flex-end;\"><button type=\"submit\" class=\"btn\" style=\"padding: 10px 24px; font-size: 1rem;\">Evaluate Approach Fidelity</button></div></form></div><script>\n\t\t\tfunction onProblemChange() {\n\t\t\t\tconst sel = document.getElementById(\"problem-select\");\n\t\t\t\tconst opt = sel.options[sel.selectedIndex];\n\t\t\t\tdocument.getElementById(\"problem-desc\").innerText = opt.getAttribute(\"data-desc\") || \"\";\n\t\t\t}\n\t\t\tonProblemChange();\n\n\t\t\tfunction prefillValid() {\n\t\t\t\tdocument.getElementById(\"explanation\").value = \"I'll store each number and its index in a hashmap, and then look up whether the target complement exists in constant time.\";\n\t\t\t\tdocument.getElementById(\"source_code\").value = \"def solve(nums, target):\\n    seen = {}\\n    for i, n in enumerate(nums):\\n        diff = target - n\\n        if diff in seen:\\n            return [seen[diff], i]\\n        seen[n] = i\\n    return []\";\n\t\t\t}\n\n\t\t\tfunction prefillIrrelevant() {\n\t\t\t\tdocument.getElementById(\"explanation\").value = \"I will use two pointers and a hashmap to check frequencies.\";\n\t\t\t\tdocument.getElementById(\"source_code\").value = \"def solve(nums, target):\\n    counts = {}\\n    for x in nums:\\n        counts[x] = counts.get(x, 0) + 1\\n    # Hashmap above does not contribute to two pointers result below\\n    left = 0\\n    right = len(nums) - 1\\n    while left < right:\\n        s = nums[left] + nums[right]\\n        if s == target:\\n            return [left, right]\\n        elif s < target:\\n            left += 1\\n        else:\\n            right -= 1\\n    return [0, 1]\";\n\t\t\t}\n\n\t\t\tfunction prefillMismatch() {\n\t\t\t\tdocument.getElementById(\"explanation\").value = \"I will use binary search to locate pairs in the array.\";\n\t\t\t\tdocument.getElementById(\"source_code\").value = \"def solve(nums, target):\\n    seen = {}\\n    for i, n in enumerate(nums):\\n        diff = target - n\\n        if diff in seen:\\n            return [seen[diff], i]\\n        seen[n] = i\\n    return []\";\n\t\t\t}\n\t\t</script>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</select><div id=\"problem-details\" style=\"margin-bottom: 16px; padding: 12px; background: #0d1117; border-radius: 6px; border: 1px solid #30363d; font-size: 0.85rem;\"><p id=\"problem-desc\" style=\"color: #8b949e;\"></p></div><div style=\"margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px;\"><span style=\"font-size: 0.85rem; color: #8b949e; align-self: center;\">Quick Pre-fills:</span> <button type=\"button\" class=\"btn btn-secondary\" style=\"font-size: 0.8rem; padding: 4px 8px;\" onclick=\"resetToStarter()\">Reset Template</button> <button type=\"button\" class=\"btn btn-secondary\" style=\"font-size: 0.8rem; padding: 4px 8px;\" onclick=\"prefillValid()\">Valid Hashmap</button> <button type=\"button\" class=\"btn btn-secondary\" style=\"font-size: 0.8rem; padding: 4px 8px;\" onclick=\"prefillIrrelevant()\">Irrelevant Hashmap</button> <button type=\"button\" class=\"btn btn-secondary\" style=\"font-size: 0.8rem; padding: 4px 8px;\" onclick=\"prefillMismatch()\">Mismatch Claim</button> <button type=\"button\" class=\"btn btn-secondary\" style=\"font-size: 0.8rem; padding: 4px 8px;\" onclick=\"prefillUserCase()\">User TwoSum Input</button></div><label for=\"explanation\">Candidate Explanation of Intended Approach</label> <textarea id=\"explanation\" name=\"explanation\" rows=\"3\" placeholder=\"Describe your algorithm and data structures, e.g. I will use a hashmap to store seen elements and lookup complements in O(1)...\" required></textarea> <label for=\"source_code\">Candidate Source Code (Python)</label> <textarea id=\"source_code\" name=\"source_code\" class=\"code-editor\" rows=\"14\" placeholder=\"def solve(...):&#10;    # Write your solution here\" required></textarea><div style=\"display: flex; justify-content: flex-end;\"><button type=\"submit\" class=\"btn\" style=\"padding: 10px 24px; font-size: 1rem;\">Evaluate Approach Fidelity</button></div></form></div><script>\n\t\t\tlet lastStarterCode = \"\";\n\n\t\t\tfunction onProblemChange(forceReset) {\n\t\t\t\tconst sel = document.getElementById(\"problem-select\");\n\t\t\t\tif (!sel || sel.options.length === 0) return;\n\t\t\t\tconst opt = sel.options[sel.selectedIndex];\n\t\t\t\tdocument.getElementById(\"problem-desc\").innerText = opt.getAttribute(\"data-desc\") || \"\";\n\n\t\t\t\tconst starter = opt.getAttribute(\"data-starter\") || \"\";\n\t\t\t\tconst codeArea = document.getElementById(\"source_code\");\n\n\t\t\t\tif (forceReset || codeArea.value.trim() === \"\" || codeArea.value.trim() === lastStarterCode.trim()) {\n\t\t\t\t\tcodeArea.value = starter;\n\t\t\t\t}\n\t\t\t\tlastStarterCode = starter;\n\t\t\t}\n\n\t\t\tfunction resetToStarter() {\n\t\t\t\tonProblemChange(true);\n\t\t\t}\n\n\t\t\tfunction prefillValid() {\n\t\t\t\tdocument.getElementById(\"explanation\").value = \"I'll store each number and its index in a hashmap, and then look up whether the target complement exists in constant time.\";\n\t\t\t\tdocument.getElementById(\"source_code\").value = \"def solve(nums, target):\\n    seen = {}\\n    for i, n in enumerate(nums):\\n        diff = target - n\\n        if diff in seen:\\n            return [seen[diff], i]\\n        seen[n] = i\\n    return []\";\n\t\t\t}\n\n\t\t\tfunction prefillIrrelevant() {\n\t\t\t\tdocument.getElementById(\"explanation\").value = \"I will use two pointers and a hashmap to check frequencies.\";\n\t\t\t\tdocument.getElementById(\"source_code\").value = \"def solve(nums, target):\\n    counts = {}\\n    for x in nums:\\n        counts[x] = counts.get(x, 0) + 1\\n    # Hashmap above does not contribute to two pointers result below\\n    left = 0\\n    right = len(nums) - 1\\n    while left < right:\\n        s = nums[left] + nums[right]\\n        if s == target:\\n            return [left, right]\\n        elif s < target:\\n            left += 1\\n        else:\\n            right -= 1\\n    return [0, 1]\";\n\t\t\t}\n\n\t\t\tfunction prefillMismatch() {\n\t\t\t\tdocument.getElementById(\"explanation\").value = \"I will use binary search to locate pairs in the array.\";\n\t\t\t\tdocument.getElementById(\"source_code\").value = \"def solve(nums, target):\\n    seen = {}\\n    for i, n in enumerate(nums):\\n        diff = target - n\\n        if diff in seen:\\n            return [seen[diff], i]\\n        seen[n] = i\\n    return []\";\n\t\t\t}\n\n\t\t\tfunction prefillUserCase() {\n\t\t\t\tdocument.getElementById(\"explanation\").value = \"So I will iterate through the array, keep a Hashmap storing their index, match target - current number, check for this value in hte Hashmap, if found return these two index the current and the one stored in Hashmap else return empty array for not found.\";\n\t\t\t\tdocument.getElementById(\"source_code\").value = \"nums = [2, 7, 11, 15]\\ntarget = 9\\n\\nprint(twoSum(nums, target))  # [0, 1]\\n\\ndef twoSum(nums, target):\\n    seen = {}\\n\\n    for i, num in enumerate(nums):\\n        complement = target - num\\n\\n        if complement in seen:\\n            return [seen[complement], i]\\n\\n        seen[num] = i\\n\\n    return []\";\n\t\t\t}\n\n\t\t\t// Initialize on load\n\t\t\twindow.addEventListener(\"DOMContentLoaded\", function() {\n\t\t\t\tonProblemChange(false);\n\t\t\t});\n\t\t</script>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

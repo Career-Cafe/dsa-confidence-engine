@@ -11,9 +11,14 @@ templ Index(problems []model.Problem) {
 			<h2 class="card-header">Submission Evaluator</h2>
 			<form id="eval-form" method="POST" action="/evaluate">
 				<label for="problem-select">Select Problem</label>
-				<select id="problem-select" name="problem_id" onchange="onProblemChange()">
+				<select id="problem-select" name="problem_id" onchange="onProblemChange(false)">
 					for _, p := range problems {
-						<option value={ p.ID } data-desc={ p.Description } data-entrypoint={ p.Entrypoint }>
+						<option
+							value={ p.ID }
+							data-desc={ p.Description }
+							data-entrypoint={ p.Entrypoint }
+							data-starter={ p.StarterCode }
+						>
 							{ fmt.Sprintf("%s (%s)", p.Title, p.ID) }
 						</option>
 					}
@@ -23,11 +28,13 @@ templ Index(problems []model.Problem) {
 					<p id="problem-desc" style="color: #8b949e;"></p>
 				</div>
 
-				<div style="margin-bottom: 16px; display: flex; gap: 8px;">
+				<div style="margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px;">
 					<span style="font-size: 0.85rem; color: #8b949e; align-self: center;">Quick Pre-fills:</span>
+					<button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" onclick="resetToStarter()">Reset Template</button>
 					<button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" onclick="prefillValid()">Valid Hashmap</button>
 					<button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" onclick="prefillIrrelevant()">Irrelevant Hashmap</button>
 					<button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" onclick="prefillMismatch()">Mismatch Claim</button>
+					<button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;" onclick="prefillUserCase()">User TwoSum Input</button>
 				</div>
 
 				<label for="explanation">Candidate Explanation of Intended Approach</label>
@@ -44,8 +51,8 @@ templ Index(problems []model.Problem) {
 					id="source_code"
 					name="source_code"
 					class="code-editor"
-					rows="12"
-					placeholder="def solve(nums, target):&#10;    ..."
+					rows="14"
+					placeholder="def solve(...):&#10;    # Write your solution here"
 					required
 				></textarea>
 
@@ -58,12 +65,26 @@ templ Index(problems []model.Problem) {
 		</div>
 
 		<script>
-			function onProblemChange() {
+			let lastStarterCode = "";
+
+			function onProblemChange(forceReset) {
 				const sel = document.getElementById("problem-select");
+				if (!sel || sel.options.length === 0) return;
 				const opt = sel.options[sel.selectedIndex];
 				document.getElementById("problem-desc").innerText = opt.getAttribute("data-desc") || "";
+
+				const starter = opt.getAttribute("data-starter") || "";
+				const codeArea = document.getElementById("source_code");
+
+				if (forceReset || codeArea.value.trim() === "" || codeArea.value.trim() === lastStarterCode.trim()) {
+					codeArea.value = starter;
+				}
+				lastStarterCode = starter;
 			}
-			onProblemChange();
+
+			function resetToStarter() {
+				onProblemChange(true);
+			}
 
 			function prefillValid() {
 				document.getElementById("explanation").value = "I'll store each number and its index in a hashmap, and then look up whether the target complement exists in constant time.";
@@ -79,6 +100,16 @@ templ Index(problems []model.Problem) {
 				document.getElementById("explanation").value = "I will use binary search to locate pairs in the array.";
 				document.getElementById("source_code").value = "def solve(nums, target):\n    seen = {}\n    for i, n in enumerate(nums):\n        diff = target - n\n        if diff in seen:\n            return [seen[diff], i]\n        seen[n] = i\n    return []";
 			}
+
+			function prefillUserCase() {
+				document.getElementById("explanation").value = "So I will iterate through the array, keep a Hashmap storing their index, match target - current number, check for this value in hte Hashmap, if found return these two index the current and the one stored in Hashmap else return empty array for not found.";
+				document.getElementById("source_code").value = "nums = [2, 7, 11, 15]\ntarget = 9\n\nprint(twoSum(nums, target))  # [0, 1]\n\ndef twoSum(nums, target):\n    seen = {}\n\n    for i, num in enumerate(nums):\n        complement = target - num\n\n        if complement in seen:\n            return [seen[complement], i]\n\n        seen[num] = i\n\n    return []";
+			}
+
+			// Initialize on load
+			window.addEventListener("DOMContentLoaded", function() {
+				onProblemChange(false);
+			});
 		</script>
 	}
 }
