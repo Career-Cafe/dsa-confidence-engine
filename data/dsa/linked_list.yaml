@@ -1,0 +1,40 @@
+- id: linked_list
+  name: Linked List
+  description: Linear collection of data elements whose order is not given by their physical placement in memory.
+  aliases:
+    - linked list
+    - singly linked list
+    - doubly linked list
+    - node list
+  keywords:
+    - node
+    - next
+    - prev
+    - head
+    - tail
+
+- id: reverse_linked_list
+  name: Reverse Linked List
+  parent: linked_list
+  description: Inverting next pointers of a linked list iteratively or recursively.
+  aliases:
+    - reverse list
+    - reverse linked list
+    - inverting linked list
+  keywords:
+    - reverse
+    - prev
+    - curr
+    - next
+
+- id: dummy_head
+  name: Sentinel / Dummy Head
+  parent: linked_list
+  description: Prepending a pseudo-node before head to simplify boundary and edge cases.
+  aliases:
+    - dummy head
+    - dummy node
+    - sentinel node
+  keywords:
+    - dummy
+    - sentinel

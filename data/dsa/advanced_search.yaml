@@ -1,0 +1,23 @@
+- id: advanced_search
+  name: Advanced Search / Optimization Patterns
+  description: State-space search, branch-and-bound, A* search, and optimization pruning.
+  aliases:
+    - advanced search
+    - optimization patterns
+    - heuristic search
+  keywords:
+    - heuristic
+    - a star
+    - branch and bound
+
+- id: a_star
+  name: A* Search
+  parent: advanced_search
+  description: Informed graph search using heuristic estimation h(n) + cost g(n).
+  aliases:
+    - a star
+    - a* search
+    - astar
+  keywords:
+    - heuristic
+    - astar

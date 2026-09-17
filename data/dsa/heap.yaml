@@ -1,0 +1,49 @@
+- id: heap
+  name: Heap / Priority Queue
+  description: Specialized tree-based data structure satisfying heap property for O(log n) min/max retrieval.
+  aliases:
+    - heap
+    - priority queue
+    - min heap
+    - max heap
+    - pq
+  keywords:
+    - heap
+    - priority
+    - heappush
+    - heappop
+    - heapify
+  code_signals:
+    - heapq_push
+    - heapq_pop
+    - heapq_heapify
+  explanation_examples:
+    - "use a min-heap to keep track of the smallest elements"
+    - "push values into a priority queue"
+
+- id: top_k_elements
+  name: Top-K Elements via Heap
+  parent: heap
+  description: Maintaining a bounded heap of size k to find k largest or smallest items.
+  aliases:
+    - top k
+    - k largest elements
+    - k smallest elements
+    - bounded heap
+  keywords:
+    - top k
+    - largest
+    - smallest
+
+- id: two_heaps
+  name: Two Heaps (Median Finding)
+  parent: heap
+  description: Balancing a max-heap and a min-heap to maintain dynamic running median.
+  aliases:
+    - two heaps
+    - median finder
+    - double heap
+  keywords:
+    - median
+    - two heaps
+    - balance

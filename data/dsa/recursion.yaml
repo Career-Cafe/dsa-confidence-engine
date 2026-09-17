@@ -1,0 +1,30 @@
+- id: recursion
+  name: Recursion
+  description: Technique in which a function calls itself directly or indirectly to solve smaller subproblems.
+  aliases:
+    - recursion
+    - recursive
+    - recursive approach
+    - self call
+  keywords:
+    - recurse
+    - recursive
+    - base case
+  code_signals:
+    - self_function_call
+    - helper_recursion
+  explanation_examples:
+    - "recursively compute the answer using a helper function"
+    - "define base cases and recurse on the rest"
+
+- id: divide_and_conquer
+  name: Divide and Conquer
+  parent: recursion
+  description: Recursively breaking a problem into independent subproblems, solving them, and combining solutions.
+  aliases:
+    - divide and conquer
+    - dnc
+  keywords:
+    - divide
+    - conquer
+    - combine

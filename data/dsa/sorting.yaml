@@ -1,0 +1,58 @@
+- id: sorting
+  name: Sorting
+  description: Arranging elements in ordered sequence (ascending or descending).
+  aliases:
+    - sorting
+    - sort
+    - sorted
+    - ordered
+    - order by
+  keywords:
+    - sort
+    - sorted
+    - order
+    - arrange
+  code_signals:
+    - list_sort
+    - sorted_call
+    - custom_sort_key
+  explanation_examples:
+    - "sort the array in ascending order"
+    - "first sort the numbers and then process them"
+
+- id: custom_sort
+  name: Custom Comparator Sorting
+  parent: sorting
+  description: Ordering elements according to a custom key function or comparison lambda.
+  aliases:
+    - custom comparator
+    - custom sort
+    - key function sort
+  keywords:
+    - key
+    - lambda
+    - comparator
+
+- id: quicksort
+  name: Quick Sort / Quickselect
+  parent: sorting
+  description: Divide and conquer sorting using a pivot element.
+  aliases:
+    - quicksort
+    - quick select
+    - partition algorithm
+  keywords:
+    - quicksort
+    - pivot
+    - quickselect
+
+- id: mergesort
+  name: Merge Sort
+  parent: sorting
+  description: Stable divide-and-conquer sorting algorithm.
+  aliases:
+    - mergesort
+    - merge sort
+  keywords:
+    - merge
+    - divide

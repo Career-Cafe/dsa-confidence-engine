@@ -1,0 +1,33 @@
+- id: queue
+  name: Queue / Deque
+  description: First-In-First-Out (FIFO) or Double-Ended Queue abstract data structure.
+  aliases:
+    - queue
+    - deque
+    - double ended queue
+    - fifo
+  keywords:
+    - queue
+    - deque
+    - enqueue
+    - dequeue
+    - popleft
+  code_signals:
+    - collections_deque
+    - popleft
+  explanation_examples:
+    - "use a queue for breadth first search"
+    - "push to the back and pop from the front of the queue"
+
+- id: monotonic_queue
+  name: Monotonic Queue / Monotonic Deque
+  parent: queue
+  description: Double-ended queue maintaining monotonic order for sliding window maximum/minimum in O(n).
+  aliases:
+    - monotonic queue
+    - monotonic deque
+    - sliding window maximum deque
+  keywords:
+    - monotonic
+    - deque
+    - window max

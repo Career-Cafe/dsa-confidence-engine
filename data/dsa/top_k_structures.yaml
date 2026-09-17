@@ -1,0 +1,23 @@
+- id: top_k_structures
+  name: Top-K / Ordered Structures
+  description: Patterns for maintaining dynamic top k elements, order statistics, and multi-set ordering.
+  aliases:
+    - top k structures
+    - ordered structures
+    - dynamic rank
+  keywords:
+    - rank
+    - quantile
+    - order
+
+- id: bucket_sort_top_k
+  name: Bucket Sort Top-K
+  parent: top_k_structures
+  description: Using frequency buckets to extract top k frequent elements in O(n) without comparison sorting.
+  aliases:
+    - bucket sort top k
+    - frequency bucket sort
+  keywords:
+    - bucket
+    - frequency
+    - linear time

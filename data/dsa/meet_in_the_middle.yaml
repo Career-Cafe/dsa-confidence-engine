@@ -1,0 +1,11 @@
+- id: meet_in_the_middle
+  name: Meet in the Middle
+  description: Search technique dividing search space in two halves, computing each half independently, and combining via binary search or hashmap.
+  aliases:
+    - meet in the middle
+    - bidirectional search
+    - split search
+  keywords:
+    - middle
+    - split
+    - halves

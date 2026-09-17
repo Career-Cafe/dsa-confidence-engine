@@ -1,0 +1,32 @@
+- id: monotonic_structures
+  name: Monotonic Data Structures
+  description: Data structures preserving strict increasing or decreasing invariant to answer nearest-extrema queries.
+  aliases:
+    - monotonic structures
+    - monotonic data structures
+  keywords:
+    - monotonic
+    - invariant
+
+- id: mono_stack
+  name: Monotonic Stack Pattern
+  parent: monotonic_structures
+  description: Monotonic stack maintaining sorted elements to resolve next greater / smaller elements.
+  aliases:
+    - mono stack
+    - next greater
+    - previous smaller
+  keywords:
+    - monotonic
+    - stack
+
+- id: mono_queue
+  name: Monotonic Queue Pattern
+  parent: monotonic_structures
+  description: Monotonic queue maintaining extremes within a sliding window.
+  aliases:
+    - mono queue
+    - window extrema
+  keywords:
+    - monotonic
+    - deque

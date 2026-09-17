@@ -1,0 +1,48 @@
+- id: stack
+  name: Stack
+  description: Last-In-First-Out (LIFO) abstract data type.
+  aliases:
+    - stack
+    - lifo
+    - push pop
+  keywords:
+    - stack
+    - push
+    - pop
+    - top
+    - lifo
+  code_signals:
+    - list_append
+    - list_pop
+  explanation_examples:
+    - "push items onto a stack and pop them when needed"
+    - "use a stack to evaluate expressions"
+
+- id: stack_parentheses
+  name: Parentheses Matching Stack
+  parent: stack
+  description: Using a stack to validate balanced brackets, parenthesis strings, and nested scopes.
+  aliases:
+    - valid parentheses
+    - balanced brackets
+    - bracket matching
+  keywords:
+    - bracket
+    - parentheses
+    - match
+
+- id: monotonic_stack
+  name: Monotonic Stack
+  parent: stack
+  description: Stack maintaining strictly increasing or decreasing order to find next greater or smaller elements in O(n).
+  aliases:
+    - monotonic stack
+    - next greater element
+    - daily temperatures stack
+    - mono stack
+  keywords:
+    - monotonic
+    - greater
+    - smaller
+  code_signals:
+    - stack_pop_while_compare

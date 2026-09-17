@@ -1,0 +1,54 @@
+- id: arrays
+  name: Arrays
+  description: Linear data structures storing elements at contiguous memory locations.
+  aliases:
+    - array
+    - arrays
+    - list
+    - lists
+    - vector
+  keywords:
+    - array
+    - list
+    - index
+    - element
+
+- id: prefix_sum
+  name: Prefix Sum
+  parent: arrays
+  description: Precomputing cumulative sums to answer range sum queries in O(1).
+  aliases:
+    - prefix sum
+    - prefix sums
+    - cumulative sum
+    - running sum
+  keywords:
+    - prefix
+    - sum
+    - cumulative
+  code_signals:
+    - running_sum
+    - prefix_array
+
+- id: suffix_sum
+  name: Suffix Sum
+  parent: arrays
+  description: Cumulative sum computed from the end of the array to the start.
+  aliases:
+    - suffix sum
+    - backward prefix sum
+  keywords:
+    - suffix
+    - sum
+
+- id: in_place_array_manipulation
+  name: In-Place Array Manipulation
+  parent: arrays
+  description: Modifying elements within existing array memory without auxiliary space allocations.
+  aliases:
+    - in place
+    - in-place modification
+    - space optimization O(1)
+  keywords:
+    - in place
+    - overwrite

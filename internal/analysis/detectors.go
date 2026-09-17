@@ -1,0 +1,1076 @@
+package analysis
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/MishraShardendu22/dsa-confidence-engine/internal/model"
+)
+
+type ConceptDetector interface {
+	Detect(
+		functions []FunctionNode,
+		reachableFuncs map[string]*FunctionNode,
+		relevanceMap map[string]*FunctionRelevance,
+	) []model.DetectedConcept
+}
+
+// Registry holds all modular concept detectors.
+type DetectorRegistry struct {
+	detectors []ConceptDetector
+}
+
+func NewDetectorRegistry() *DetectorRegistry {
+	return &DetectorRegistry{
+		detectors: []ConceptDetector{
+			&HashMapDetector{},
+			&HashSetDetector{},
+			&SortingDetector{},
+			&TwoPointersDetector{},
+			&SlidingWindowDetector{},
+			&StackDetector{},
+			&QueueDetector{},
+			&HeapDetector{},
+			&BinarySearchDetector{},
+			&RecursionDFSDetector{},
+			&BFSDetector{},
+			&DPDetector{},
+			&ArraysDetector{},
+		},
+	}
+}
+
+func (r *DetectorRegistry) RunAll(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var detected []model.DetectedConcept
+	for _, d := range r.detectors {
+		results := d.Detect(functions, reachableFuncs, relevanceMap)
+		detected = append(detected, results...)
+	}
+	return detected
+}
+
+// 1. HashMap & Frequency Count Detector
+type HashMapDetector struct{}
+
+func (d *HashMapDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var mapEvidence []model.Evidence
+		var freqEvidence []model.Evidence
+		mapOutputRelevant := false
+		freqOutputRelevant := false
+
+		dictVars := make(map[string]bool)
+
+		for _, op := range fn.Operations {
+			switch op.Type {
+			case "dict_alloc":
+				dictVars[op.Var] = true
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					mapOutputRelevant = true
+				}
+				mapEvidence = append(mapEvidence, model.Evidence{
+					Type:           "map_allocation",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Dictionary allocated for '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "dict_write":
+				dictVars[op.Var] = true
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					mapOutputRelevant = true
+				}
+				mapEvidence = append(mapEvidence, model.Evidence{
+					Type:           "map_write",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Key-value write on map '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "dict_read":
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					mapOutputRelevant = true
+				}
+				mapEvidence = append(mapEvidence, model.Evidence{
+					Type:           "map_read",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Subscript lookup on map '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "dict_get":
+				dictVars[op.Var] = true
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					mapOutputRelevant = true
+					freqOutputRelevant = true
+				}
+				mapEvidence = append(mapEvidence, model.Evidence{
+					Type:           "map_get",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Dictionary get() call on '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+				freqEvidence = append(freqEvidence, model.Evidence{
+					Type:           "frequency_lookup_get",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Frequency counting get() method on '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "membership_check":
+				if dictVars[op.Var] || isReachable {
+					rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+					if rel {
+						mapOutputRelevant = true
+					}
+					mapEvidence = append(mapEvidence, model.Evidence{
+						Type:           "map_membership_check",
+						Line:           op.LineNo,
+						Description:    fmt.Sprintf("Key membership check 'in %s'", op.Var),
+						Reachable:      isReachable,
+						OutputRelevant: rel,
+					})
+				}
+			}
+		}
+
+		for _, mut := range fn.VarMutations {
+			if mut.Kind == "subscript_aug_assign" {
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, mut.Var)
+				if rel {
+					freqOutputRelevant = true
+				}
+				freqEvidence = append(freqEvidence, model.Evidence{
+					Type:           "frequency_counter_increment",
+					Line:           mut.LineNo,
+					Description:    fmt.Sprintf("Augmented frequency increment on '%s'", mut.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if len(mapEvidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "hashmap",
+				Name:           "Hash Map",
+				Category:       "hashing",
+				Evidence:       mapEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: mapOutputRelevant,
+				Confidence:     1.0,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+
+		if len(freqEvidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "frequency_count",
+				Name:           "HashMap Frequency Counting",
+				Category:       "hashing",
+				Evidence:       freqEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: freqOutputRelevant,
+				Confidence:     0.95,
+				Role:           model.RoleSupporting,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 2. HashSet Detector
+type HashSetDetector struct{}
+
+func (d *HashSetDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var evidence []model.Evidence
+		outRel := false
+
+		for _, op := range fn.Operations {
+			switch op.Type {
+			case "set_alloc":
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "set_allocation",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Set allocated for '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "set_add":
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "set_add",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Element addition to set '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if len(evidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "hashset",
+				Name:           "Hash Set",
+				Category:       "hashing",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     1.0,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 3. Sorting Detector
+type SortingDetector struct{}
+
+func (d *SortingDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var evidence []model.Evidence
+		outRel := false
+
+		for _, op := range fn.Operations {
+			if op.Type == "sorting_call" {
+				rel := isReachable
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "sorting_call",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Sort operation invoked: '%s'", op.Target),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if len(evidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "sorting",
+				Name:           "Sorting",
+				Category:       "sorting",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     1.0,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 4. Two Pointers Detector
+type TwoPointersDetector struct{}
+
+func (d *TwoPointersDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var evidence []model.Evidence
+		var oppositeEvidence []model.Evidence
+		outRel := false
+
+		hasInc := false
+		hasDec := false
+		for _, op := range fn.Operations {
+			if op.Type == "pointer_step" {
+				if op.Op == "inc" {
+					hasInc = true
+				} else if op.Op == "dec" {
+					hasDec = true
+				}
+			}
+		}
+
+		for _, wl := range fn.WhileLoops {
+			expr := strings.ToLower(wl.Expr)
+			if strings.Contains(expr, "<") || strings.Contains(expr, "<=") {
+				rel := isReachable
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "two_pointer_while_condition",
+					Line:           wl.LineNo,
+					Description:    fmt.Sprintf("Convergent pointer loop condition: %s", wl.Expr),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+
+				if (hasInc && hasDec) || len(wl.CondVars) >= 2 {
+					oppositeEvidence = append(oppositeEvidence, model.Evidence{
+						Type:           "opposite_end_pointers",
+						Line:           wl.LineNo,
+						Description:    "Pointers converging from opposite boundaries towards center",
+						Reachable:      isReachable,
+						OutputRelevant: rel,
+					})
+				}
+			}
+		}
+
+		if len(evidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "two_pointers",
+				Name:           "Two Pointers",
+				Category:       "two_pointers",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+		if len(oppositeEvidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "opposite_end_pointers",
+				Name:           "Opposite-End Pointers",
+				Category:       "two_pointers",
+				Evidence:       oppositeEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RoleSupporting,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 5. Sliding Window Detector
+type SlidingWindowDetector struct{}
+
+func (d *SlidingWindowDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var evidence []model.Evidence
+		outRel := false
+
+		for _, wl := range fn.WhileLoops {
+			expr := strings.ToLower(wl.Expr)
+			if strings.Contains(expr, ">") || strings.Contains(expr, "in") || strings.Contains(expr, "<") {
+				for _, op := range fn.Operations {
+					if op.Type == "dict_alloc" || op.Type == "set_alloc" || op.Type == "dict_write" {
+						rel := isReachable
+						if rel {
+							outRel = true
+						}
+						evidence = append(evidence, model.Evidence{
+							Type:           "sliding_window_condition",
+							Line:           wl.LineNo,
+							Description:    fmt.Sprintf("Sliding window invariant check: %s", wl.Expr),
+							Reachable:      isReachable,
+							OutputRelevant: rel,
+						})
+						break
+					}
+				}
+			}
+		}
+
+		if len(evidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "sliding_window",
+				Name:           "Sliding Window",
+				Category:       "sliding_window",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.90,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 6. Stack Detector
+type StackDetector struct{}
+
+func (d *StackDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var evidence []model.Evidence
+		hasAppend := false
+		hasPop := false
+		outRel := false
+
+		for _, op := range fn.Operations {
+			if op.Type == "list_append" {
+				hasAppend = true
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "stack_push",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Append element to stack '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			} else if op.Type == "list_pop" {
+				hasPop = true
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "stack_pop",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Pop element from stack '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if hasAppend && hasPop {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "stack",
+				Name:           "Stack",
+				Category:       "stack",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 7. Queue Detector
+type QueueDetector struct{}
+
+func (d *QueueDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var evidence []model.Evidence
+		outRel := false
+
+		for _, op := range fn.Operations {
+			if op.Type == "queue_op" {
+				rel := isReachable
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "queue_operation",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Queue/deque FIFO operation: %s", op.Op),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if len(evidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "queue",
+				Name:           "Queue / Deque",
+				Category:       "queue",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 8. Heap Detector
+type HeapDetector struct{}
+
+func (d *HeapDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var evidence []model.Evidence
+		outRel := false
+
+		for _, op := range fn.Operations {
+			if op.Type == "heap_op" {
+				rel := isReachable
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "heap_call",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("Priority queue/heap operation: %s", op.Op),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if len(evidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "heap",
+				Name:           "Heap / Priority Queue",
+				Category:       "heap",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     1.0,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 9. Binary Search Detector
+type BinarySearchDetector struct{}
+
+func (d *BinarySearchDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var evidence []model.Evidence
+		outRel := false
+
+		hasMid := false
+		for varName, def := range fn.VarDefs {
+			if strings.Contains(strings.ToLower(varName), "mid") || def.Kind == "assign" {
+				for _, dep := range def.Deps {
+					if strings.Contains(strings.ToLower(dep), "mid") {
+						hasMid = true
+					}
+				}
+			}
+		}
+
+		for _, wl := range fn.WhileLoops {
+			expr := strings.ToLower(wl.Expr)
+			if (strings.Contains(expr, "<=") || strings.Contains(expr, "<")) && (hasMid || len(wl.CondVars) >= 2) {
+				rel := isReachable
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "binary_search_loop",
+					Line:           wl.LineNo,
+					Description:    fmt.Sprintf("Binary search range bisection loop: %s", wl.Expr),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if len(evidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "binary_search",
+				Name:           "Binary Search",
+				Category:       "binary_search",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 10. Recursion & DFS Detector
+type RecursionDFSDetector struct{}
+
+func (d *RecursionDFSDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var recEvidence []model.Evidence
+		outRel := false
+
+		for _, call := range fn.Calls {
+			if call.Name == fn.Name {
+				rel := isReachable
+				if rel {
+					outRel = true
+				}
+				recEvidence = append(recEvidence, model.Evidence{
+					Type:           "recursive_self_call",
+					Line:           call.LineNo,
+					Description:    fmt.Sprintf("Recursive invocation of '%s'", fn.Name),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if len(recEvidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "recursion",
+				Name:           "Recursion",
+				Category:       "recursion",
+				Evidence:       recEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     1.0,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "dfs",
+				Name:           "Depth-First Search (DFS)",
+				Category:       "graphs",
+				Evidence:       recEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.90,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 11. BFS Detector
+type BFSDetector struct{}
+
+func (d *BFSDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		hasQueue := false
+		hasWhile := len(fn.WhileLoops) > 0
+		var evidence []model.Evidence
+		outRel := false
+
+		for _, op := range fn.Operations {
+			if op.Type == "queue_op" {
+				hasQueue = true
+				rel := isReachable
+				if rel {
+					outRel = true
+				}
+				evidence = append(evidence, model.Evidence{
+					Type:           "bfs_queue_traversal",
+					Line:           op.LineNo,
+					Description:    "FIFO queue popping in level-order traversal",
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if hasQueue && hasWhile {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "bfs",
+				Name:           "Breadth-First Search (BFS)",
+				Category:       "graphs",
+				Evidence:       evidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 12. Dynamic Programming Detector
+type DPDetector struct{}
+
+func (d *DPDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	funcMap := make(map[string]*FunctionNode, len(functions))
+	for i := range functions {
+		funcMap[functions[i].Name] = &functions[i]
+	}
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var dpEvidence []model.Evidence
+		var memoEvidence []model.Evidence
+		outRel := false
+
+		isRecursive := false
+		for _, call := range fn.Calls {
+			if call.Name == fn.Name {
+				isRecursive = true
+			}
+		}
+
+		// Also check if any child/helper function is recursive
+		for _, child := range funcMap {
+			if child.ParentName == fn.Name {
+				for _, c := range child.Calls {
+					if c.Name == child.Name {
+						isRecursive = true
+					}
+				}
+			}
+		}
+
+		hasMemoTable := false
+		checkVarForMemo := func(fnName, varName string, defLine int) {
+			low := strings.ToLower(varName)
+			if strings.Contains(low, "memo") || strings.Contains(low, "cache") {
+				hasMemoTable = true
+				rel := isReachable
+				if rel {
+					outRel = true
+				}
+				memoEvidence = append(memoEvidence, model.Evidence{
+					Type:           "memo_table_definition",
+					Line:           defLine,
+					Description:    fmt.Sprintf("Memoization cache structure '%s'", varName),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		for varName, def := range fn.VarDefs {
+			checkVarForMemo(fn.Name, varName, def.LineNo)
+		}
+
+		// Check parent scope variables if nested
+		if fn.ParentName != "" {
+			if parent, ok := funcMap[fn.ParentName]; ok {
+				for varName, def := range parent.VarDefs {
+					checkVarForMemo(parent.Name, varName, def.LineNo)
+				}
+			}
+		}
+
+		// Also check for memo subscript reads/writes in fn
+		for _, op := range fn.Operations {
+			if op.Type == "dict_write" || op.Type == "dict_read" || op.Type == "membership_check" {
+				if strings.Contains(strings.ToLower(op.Var), "memo") || strings.Contains(strings.ToLower(op.Var), "cache") {
+					hasMemoTable = true
+					rel := isReachable
+					if rel {
+						outRel = true
+					}
+					memoEvidence = append(memoEvidence, model.Evidence{
+						Type:           "memo_table_access",
+						Line:           op.LineNo,
+						Description:    fmt.Sprintf("Memoization state access on '%s'", op.Var),
+						Reachable:      isReachable,
+						OutputRelevant: rel,
+					})
+				}
+			}
+		}
+
+		// Check for tabulation: dp array allocation like dp = [0] * (n + 1)
+		for varName, def := range fn.VarDefs {
+			if strings.HasPrefix(strings.ToLower(varName), "dp") || strings.Contains(strings.ToLower(varName), "table") {
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, varName)
+				if rel {
+					outRel = true
+				}
+				dpEvidence = append(dpEvidence, model.Evidence{
+					Type:           "dp_table_allocation",
+					Line:           def.LineNo,
+					Description:    fmt.Sprintf("Dynamic programming table '%s'", varName),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		if isRecursive && hasMemoTable {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "memoization",
+				Name:           "Memoization (Top-Down DP)",
+				Category:       "dynamic_programming",
+				Evidence:       memoEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "dynamic_programming",
+				Name:           "Dynamic Programming",
+				Category:       "dynamic_programming",
+				Evidence:       memoEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		} else if len(dpEvidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "tabulation",
+				Name:           "Tabulation (Bottom-Up DP)",
+				Category:       "dynamic_programming",
+				Evidence:       dpEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "dynamic_programming",
+				Name:           "Dynamic Programming",
+				Category:       "dynamic_programming",
+				Evidence:       dpEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: outRel,
+				Confidence:     0.95,
+				Role:           model.RolePrimary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+
+// 13. Arrays / Sequence Detector
+type ArraysDetector struct{}
+
+func (d *ArraysDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var arrayEvidence []model.Evidence
+		arrayOutputRelevant := false
+
+		// 1. Inspect function arguments for array/list sequence parameters
+		for _, arg := range fn.Args {
+			argLower := strings.ToLower(arg)
+			if strings.Contains(argLower, "num") || strings.Contains(argLower, "arr") ||
+				strings.Contains(argLower, "list") || strings.Contains(argLower, "seq") ||
+				strings.Contains(argLower, "val") || strings.Contains(argLower, "element") {
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, arg)
+				if rel {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           "array_parameter",
+					Line:           fn.LineNo,
+					Description:    fmt.Sprintf("Sequence/Array parameter '%s' in function '%s'", arg, fn.Name),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		// 2. Inspect operations for list allocations, operations, and loops
+		for _, op := range fn.Operations {
+			switch op.Type {
+			case "list_alloc":
+				rel := isReachable
+				if op.Var != "<return>" && op.Var != "" {
+					rel = isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				}
+				if rel {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           "list_allocation",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("List literal allocated '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "list_append", "list_pop":
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           op.Type,
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("List operation '%s' on '%s'", op.Type, op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "for_loop":
+				hasRelevant := false
+				for _, iv := range op.IterVars {
+					if IsVariableOutputRelevant(relevanceMap, fn.Name, iv) {
+						hasRelevant = true
+						break
+					}
+				}
+				for _, tv := range op.TargetVars {
+					if IsVariableOutputRelevant(relevanceMap, fn.Name, tv) {
+						hasRelevant = true
+						break
+					}
+				}
+				rel := isReachable && hasRelevant
+				if rel {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           "sequence_iteration",
+					Line:           op.LineNo,
+					Description:    "Iteration over array/sequence elements",
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		// 3. Inspect return expressions for list literals
+		for _, ret := range fn.Returns {
+			trimmed := strings.TrimSpace(ret.Raw)
+			if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") {
+				if isReachable {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           "list_return",
+					Line:           ret.LineNo,
+					Description:    fmt.Sprintf("Returned list expression: %s", trimmed),
+					Reachable:      isReachable,
+					OutputRelevant: isReachable,
+				})
+			}
+		}
+
+		if len(arrayEvidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "arrays",
+				Name:           "Arrays",
+				Category:       "arrays",
+				Evidence:       arrayEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: arrayOutputRelevant,
+				Confidence:     1.0,
+				Role:           model.RoleAuxiliary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+

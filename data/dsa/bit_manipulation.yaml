@@ -1,0 +1,46 @@
+- id: bit_manipulation
+  name: Bit Manipulation
+  description: Performing bitwise operations (AND, OR, XOR, NOT, shifts) on binary representations.
+  aliases:
+    - bit manipulation
+    - bitwise
+    - bitwise operations
+    - binary representation
+  keywords:
+    - bit
+    - xor
+    - shift
+    - mask
+  code_signals:
+    - bitwise_xor
+    - bitwise_and
+    - bitwise_shift
+  explanation_examples:
+    - "use XOR to cancel out paired numbers"
+    - "shift bits left and check the lowest bit"
+
+- id: bitmask_subsets
+  name: Bitmask Subsets
+  parent: bit_manipulation
+  description: Using an integer bitmask to represent membership in a subset of size up to 30 or 60.
+  aliases:
+    - bitmask
+    - subset mask
+    - bit representation of set
+  keywords:
+    - bitmask
+    - subset
+    - mask
+
+- id: single_number_xor
+  name: Single Number (XOR Cancellation)
+  parent: bit_manipulation
+  description: Finding the non-repeating element using the self-canceling property of XOR.
+  aliases:
+    - xor cancel
+    - single number xor
+    - pairwise cancellation
+  keywords:
+    - xor
+    - cancel
+    - single

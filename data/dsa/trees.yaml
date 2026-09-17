@@ -1,0 +1,52 @@
+- id: trees
+  name: Trees
+  description: Hierarchical acyclic graph consisting of nodes connected by directed or undirected edges.
+  aliases:
+    - tree
+    - trees
+    - binary tree
+    - bst
+  keywords:
+    - tree
+    - node
+    - left
+    - right
+    - root
+
+- id: binary_search_tree
+  name: Binary Search Tree (BST)
+  parent: trees
+  description: Tree where left subtree holds smaller values and right subtree holds larger values.
+  aliases:
+    - bst
+    - binary search tree
+  keywords:
+    - bst
+    - search tree
+
+- id: tree_traversal
+  name: Tree Traversal
+  parent: trees
+  description: Visiting all nodes in a tree (inorder, preorder, postorder, level-order).
+  aliases:
+    - tree traversal
+    - inorder
+    - preorder
+    - postorder
+    - level order traversal
+  keywords:
+    - traversal
+    - inorder
+    - preorder
+    - postorder
+
+- id: lca
+  name: Lowest Common Ancestor (LCA)
+  parent: trees
+  description: Finding deepest shared ancestor node of two nodes in a tree.
+  aliases:
+    - lowest common ancestor
+    - lca
+  keywords:
+    - ancestor
+    - lca

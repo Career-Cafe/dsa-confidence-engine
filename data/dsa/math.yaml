@@ -1,0 +1,38 @@
+- id: math
+  name: Math & Number Theory
+  description: Mathematical techniques including combinatorics, number theory, and modular arithmetic.
+  aliases:
+    - math
+    - number theory
+    - arithmetic
+  keywords:
+    - gcd
+    - prime
+    - modulo
+    - factor
+
+- id: sieve_of_eratosthenes
+  name: Sieve of Eratosthenes
+  parent: math
+  description: Finding all prime numbers up to any given limit in O(n log log n).
+  aliases:
+    - sieve of eratosthenes
+    - prime sieve
+    - sieve
+  keywords:
+    - sieve
+    - prime
+
+- id: modular_arithmetic
+  name: Modular Arithmetic & Fast Exponentiation
+  parent: math
+  description: Performing operations under large modulo constraints and binary exponentiation in O(log n).
+  aliases:
+    - modular arithmetic
+    - fast exponentiation
+    - binary exponentiation
+    - mod pow
+  keywords:
+    - modulo
+    - power
+    - exponentiation

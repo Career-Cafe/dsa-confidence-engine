@@ -51,6 +51,8 @@ func (r *SQLiteRepository) migrate() error {
 		description TEXT NOT NULL,
 		language TEXT NOT NULL,
 		entrypoint TEXT NOT NULL,
+		entrypoint_aliases_json TEXT DEFAULT '[]',
+		starter_code TEXT DEFAULT '',
 		tests_json TEXT NOT NULL,
 		accepted_strategies_json TEXT NOT NULL,
 		required_concepts_json TEXT NOT NULL,
@@ -82,11 +84,20 @@ func (r *SQLiteRepository) migrate() error {
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 	`
-	_, err := r.db.Exec(schema)
-	return err
+	if _, err := r.db.Exec(schema); err != nil {
+		return err
+	}
+	// Migrations for existing databases
+	_, _ = r.db.Exec("ALTER TABLE problems ADD COLUMN entrypoint_aliases_json TEXT DEFAULT '[]';")
+	_, _ = r.db.Exec("ALTER TABLE problems ADD COLUMN starter_code TEXT DEFAULT '';")
+	return nil
 }
 
 func (r *SQLiteRepository) SaveProblem(ctx context.Context, p *model.Problem) error {
+	aliasesJSON, err := json.Marshal(p.EntrypointAliases)
+	if err != nil {
+		return err
+	}
 	testsJSON, err := json.Marshal(p.Tests)
 	if err != nil {
 		return err
@@ -111,14 +122,17 @@ func (r *SQLiteRepository) SaveProblem(ctx context.Context, p *model.Problem) er
 	query := `
 	INSERT INTO problems (
 		id, title, description, language, entrypoint,
+		entrypoint_aliases_json, starter_code,
 		tests_json, accepted_strategies_json, required_concepts_json,
 		optional_concepts_json, primary_concepts_json
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	ON CONFLICT(id) DO UPDATE SET
 		title=excluded.title,
 		description=excluded.description,
 		language=excluded.language,
 		entrypoint=excluded.entrypoint,
+		entrypoint_aliases_json=excluded.entrypoint_aliases_json,
+		starter_code=excluded.starter_code,
 		tests_json=excluded.tests_json,
 		accepted_strategies_json=excluded.accepted_strategies_json,
 		required_concepts_json=excluded.required_concepts_json,
@@ -127,6 +141,7 @@ func (r *SQLiteRepository) SaveProblem(ctx context.Context, p *model.Problem) er
 	`
 	_, err = r.db.ExecContext(ctx, query,
 		p.ID, p.Title, p.Description, p.Language, p.Entrypoint,
+		string(aliasesJSON), p.StarterCode,
 		string(testsJSON), string(strategiesJSON), string(reqJSON),
 		string(optJSON), string(priJSON),
 	)
@@ -136,6 +151,7 @@ func (r *SQLiteRepository) SaveProblem(ctx context.Context, p *model.Problem) er
 func (r *SQLiteRepository) GetProblem(ctx context.Context, id string) (*model.Problem, error) {
 	query := `
 	SELECT id, title, description, language, entrypoint,
+	       entrypoint_aliases_json, starter_code,
 	       tests_json, accepted_strategies_json, required_concepts_json,
 	       optional_concepts_json, primary_concepts_json
 	FROM problems WHERE id = ?
@@ -143,9 +159,10 @@ func (r *SQLiteRepository) GetProblem(ctx context.Context, id string) (*model.Pr
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var p model.Problem
-	var testsJSON, stratJSON, reqJSON, optJSON, priJSON string
+	var aliasesJSON, testsJSON, stratJSON, reqJSON, optJSON, priJSON string
 	err := row.Scan(
 		&p.ID, &p.Title, &p.Description, &p.Language, &p.Entrypoint,
+		&aliasesJSON, &p.StarterCode,
 		&testsJSON, &stratJSON, &reqJSON, &optJSON, &priJSON,
 	)
 	if err == sql.ErrNoRows {
@@ -155,6 +172,7 @@ func (r *SQLiteRepository) GetProblem(ctx context.Context, id string) (*model.Pr
 		return nil, err
 	}
 
+	_ = json.Unmarshal([]byte(aliasesJSON), &p.EntrypointAliases)
 	if err := json.Unmarshal([]byte(testsJSON), &p.Tests); err != nil {
 		return nil, err
 	}
@@ -177,6 +195,7 @@ func (r *SQLiteRepository) GetProblem(ctx context.Context, id string) (*model.Pr
 func (r *SQLiteRepository) ListProblems(ctx context.Context) ([]model.Problem, error) {
 	query := `
 	SELECT id, title, description, language, entrypoint,
+	       entrypoint_aliases_json, starter_code,
 	       tests_json, accepted_strategies_json, required_concepts_json,
 	       optional_concepts_json, primary_concepts_json
 	FROM problems ORDER BY id ASC
@@ -190,13 +209,15 @@ func (r *SQLiteRepository) ListProblems(ctx context.Context) ([]model.Problem, e
 	var problems []model.Problem
 	for rows.Next() {
 		var p model.Problem
-		var testsJSON, stratJSON, reqJSON, optJSON, priJSON string
+		var aliasesJSON, testsJSON, stratJSON, reqJSON, optJSON, priJSON string
 		if err := rows.Scan(
 			&p.ID, &p.Title, &p.Description, &p.Language, &p.Entrypoint,
+			&aliasesJSON, &p.StarterCode,
 			&testsJSON, &stratJSON, &reqJSON, &optJSON, &priJSON,
 		); err != nil {
 			return nil, err
 		}
+		_ = json.Unmarshal([]byte(aliasesJSON), &p.EntrypointAliases)
 		_ = json.Unmarshal([]byte(testsJSON), &p.Tests)
 		_ = json.Unmarshal([]byte(stratJSON), &p.AcceptedStrategies)
 		_ = json.Unmarshal([]byte(reqJSON), &p.RequiredConcepts)

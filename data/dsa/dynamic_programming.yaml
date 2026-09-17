@@ -1,0 +1,257 @@
+- id: dynamic_programming
+  name: Dynamic Programming
+  description: Solving complex problems by breaking them down into simpler overlapping subproblems and optimal substructure.
+  aliases:
+    - dynamic programming
+    - dp
+  keywords:
+    - dp
+    - recurrence
+    - optimal
+    - subproblem
+
+- id: memoization
+  name: Memoization (Top-Down DP)
+  parent: dynamic_programming
+  description: Recursive dynamic programming caching previously computed subproblem results in a hashmap or table.
+  aliases:
+    - memoization
+    - memo
+    - top down dp
+    - cache subproblems
+    - store previous states
+    - remember computed states
+    - recursive dp with caching
+  keywords:
+    - memo
+    - cache
+    - recursive
+    - cache subproblems
+  related_concepts:
+    - hashmap
+    - recursion
+  code_signals:
+    - memo_table
+    - lru_cache
+    - memo_dict
+
+- id: tabulation
+  name: Tabulation (Bottom-Up DP)
+  parent: dynamic_programming
+  description: Iterative dynamic programming filling a table from base cases to the final answer.
+  aliases:
+    - tabulation
+    - bottom up dp
+    - dp table
+    - iterative dp
+  keywords:
+    - table
+    - iterative
+    - base case
+  code_signals:
+    - dp_array_allocation
+    - dp_state_transition
+
+- id: dp_1d
+  name: 1-D Dynamic Programming
+  parent: dynamic_programming
+  description: Dynamic programming with single-variable state array.
+  aliases:
+    - 1-d dp
+    - 1d dp
+    - one dimensional dynamic programming
+    - linear dp
+    - single dimension dp
+  keywords:
+    - linear
+    - 1d
+  related_concepts:
+    - tabulation
+
+- id: dp_subsequence
+  name: Subsequence DP
+  parent: dynamic_programming
+  description: Finding optimal subsequences using dynamic programming.
+  aliases:
+    - subsequence dp
+    - subsequence dynamic programming
+  keywords:
+    - subsequence
+
+- id: dp_lis
+  name: Longest Increasing Subsequence
+  parent: dp_subsequence
+  description: Dynamic programming formulation for LIS and variants.
+  aliases:
+    - lis
+    - longest increasing subsequence
+  keywords:
+    - increasing
+    - subsequence
+
+- id: dp_lcs
+  name: Longest Common Subsequence
+  parent: dp_subsequence
+  description: Two-sequence 2D DP for common subsequence comparison.
+  aliases:
+    - lcs
+    - longest common subsequence
+  keywords:
+    - common
+    - subsequence
+
+- id: dp_string
+  name: String DP
+  parent: dynamic_programming
+  description: DP on string transformations, matching, and palindromes.
+  aliases:
+    - string dp
+    - string dynamic programming
+  keywords:
+    - string
+    - palindrome
+
+- id: dp_string_edit_distance
+  name: Edit Distance
+  parent: dp_string
+  description: Levenshtein distance and string transition DP.
+  aliases:
+    - levenshtein distance
+    - edit distance
+    - string edit distance
+  keywords:
+    - edit
+    - distance
+    - levenshtein
+
+- id: dp_grid
+  name: Grid DP
+  parent: dynamic_programming
+  description: Finding paths, minimal costs, or ways across a 2D matrix.
+  aliases:
+    - grid dp
+    - 2d grid dp
+    - matrix dp
+  keywords:
+    - grid
+    - matrix
+    - path
+
+- id: dp_knapsack
+  name: Knapsack DP
+  parent: dynamic_programming
+  description: 0/1 knapsack, unbounded knapsack, and subset sum variations.
+  aliases:
+    - knapsack
+    - 0/1 knapsack
+    - unbounded knapsack
+    - subset sum dp
+  keywords:
+    - knapsack
+    - weight
+    - capacity
+
+- id: dp_interval
+  name: Interval DP
+  parent: dynamic_programming
+  description: DP on sub-ranges and intervals [i, j], such as matrix chain multiplication or burst balloons.
+  aliases:
+    - interval dp
+    - range dp
+  keywords:
+    - interval
+    - range
+
+- id: dp_game
+  name: Game DP
+  parent: dynamic_programming
+  description: Minimax and optimal game theory DP with multiple players.
+  aliases:
+    - game dp
+    - minimax dp
+    - stone game dp
+  keywords:
+    - game
+    - minimax
+    - turn
+
+- id: dp_stock
+  name: Stock DP
+  parent: dynamic_programming
+  description: Multi-state DP tracking holding, sold, and cooldown states for stock trading problems.
+  aliases:
+    - stock dp
+    - best time to buy and sell stock dp
+  keywords:
+    - stock
+    - cooldown
+    - transaction
+
+- id: dp_digit
+  name: Digit DP
+  parent: dynamic_programming
+  description: Counting numbers satisfying specific digit-level properties.
+  aliases:
+    - digit dp
+  keywords:
+    - digit
+    - tight
+
+- id: dp_combinatorial
+  name: Combinatorial DP
+  parent: dynamic_programming
+  description: Counting permutations, combinations, and partitions.
+  aliases:
+    - combinatorial dp
+    - counting dp
+  keywords:
+    - count
+    - ways
+    - combinations
+
+- id: dp_bitmask
+  name: Bitmask DP
+  parent: dynamic_programming
+  description: Representing subset states as bitmasks in dynamic programming.
+  aliases:
+    - bitmask dp
+    - subset dp
+  keywords:
+    - bitmask
+    - subset
+    - mask
+
+- id: dp_tree
+  name: Tree DP
+  parent: dynamic_programming
+  description: Computing DP values along subtrees in a tree structure.
+  aliases:
+    - tree dp
+    - subtree dp
+  keywords:
+    - tree
+    - subtree
+
+- id: dp_tree_rerooting
+  name: Tree DP Rerooting
+  parent: dp_tree
+  description: Re-rooting technique to compute tree DP values for all nodes in O(n).
+  aliases:
+    - tree rerooting
+    - rerooting dp
+    - tree dp rerooting
+  keywords:
+    - rerooting
+    - tree
+
+- id: dp_advanced
+  name: Advanced DP
+  parent: dynamic_programming
+  description: Convex hull trick, divide and conquer optimization, and Knuth optimization on DP.
+  aliases:
+    - advanced dp
+    - dp optimization
+    - convex hull trick
+  keywords:
+    - optimization
+    - cht

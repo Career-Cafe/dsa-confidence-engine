@@ -1,0 +1,247 @@
+package templates
+
+import (
+	"fmt"
+	"github.com/MishraShardendu22/dsa-confidence-engine/internal/model"
+)
+
+templ Evaluation(eval *model.Evaluation) {
+	@Layout(fmt.Sprintf("Evaluation %s", eval.ID)) {
+		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+			<div>
+				<h1 style="font-size: 1.4rem; color: #f0f6fc;">Evaluation Report</h1>
+				<p style="font-size: 0.85rem; color: #8b949e;">ID: <code>{ eval.ID }</code> | Problem: <code>{ eval.ProblemID }</code> | Duration: { fmt.Sprintf("%dms", eval.DurationMs) }</p>
+			</div>
+			<div>
+				if eval.Decision == model.DecisionAccept {
+					<span class="badge badge-accept" style="font-size: 1.1rem; padding: 6px 16px;">ACCEPT</span>
+				} else if eval.Decision == model.DecisionRejustify {
+					<span class="badge badge-rejustify" style="font-size: 1.1rem; padding: 6px 16px;">REJUSTIFY</span>
+				} else {
+					<span class="badge badge-reject" style="font-size: 1.1rem; padding: 6px 16px;">REJECT</span>
+				}
+			</div>
+		</div>
+
+		<!-- Summary Grid -->
+		<div class="grid-2">
+			<!-- Test Results Card -->
+			<div class="card">
+				<h3 class="card-header">Test Execution Gate</h3>
+				<div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+					if eval.TestResult == model.TestStatusPass {
+						<span class="badge badge-accept">PASS</span>
+					} else {
+						<span class="badge badge-reject">FAIL</span>
+					}
+					<span style="font-size: 0.95rem; color: #f0f6fc;">
+						Passed: <strong>{ fmt.Sprintf("%d", eval.PassedTests) }</strong> / <strong>{ fmt.Sprintf("%d", eval.TotalTests) }</strong> test cases
+					</span>
+				</div>
+				if eval.Reason != "" {
+					<p style="font-size: 0.9rem; color: #8b949e;">{ eval.Reason }</p>
+				}
+			</div>
+
+			<!-- Fidelity Score Card -->
+			<div class="card">
+				<h3 class="card-header">Fidelity Score</h3>
+				<div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px;">
+					<span style="font-size: 2.2rem; font-weight: 700; color: #f0f6fc;">
+						{ fmt.Sprintf("%.1f%%", eval.FidelityScore * 100) }
+					</span>
+					<span style="font-size: 0.9rem; color: #8b949e;">
+						(Thresholds: &lt;90% Reject, 90-95% Rejustify, &ge;95% Accept)
+					</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Diagnostics Card -->
+		if len(eval.Diagnostics) > 0 {
+			<div class="card" style="border-left: 4px solid var(--warning);">
+				<h3 class="card-header" style="color: var(--warning);">Diagnostic Findings</h3>
+				<ul style="padding-left: 20px; font-size: 0.9rem;">
+					for _, d := range eval.Diagnostics {
+						<li style="margin-bottom: 6px;">{ d }</li>
+					}
+				</ul>
+			</div>
+		}
+
+		<!-- Concept Comparison Breakdown -->
+		<div class="grid-2">
+			<!-- Claimed Concepts (Point B) -->
+			<div class="card">
+				<h3 class="card-header">Point B: Claimed Concepts (Explanation)</h3>
+				if len(eval.ClaimedConcepts) == 0 {
+					if eval.TestResult == model.TestStatusFail {
+						<p style="color: #8b949e; font-size: 0.85rem; font-style: italic;">Evaluation halted at Test Gate. Claimed concept extraction was skipped because candidate code failed required test cases.</p>
+					} else {
+						<p style="color: #8b949e; font-size: 0.9rem;">No DSA concepts detected in explanation.</p>
+					}
+				} else {
+					<table>
+						<thead>
+							<tr>
+								<th>Concept</th>
+								<th>Stage</th>
+								<th>Matched Phrase</th>
+								<th>Confidence</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, c := range eval.ClaimedConcepts {
+								<tr>
+									<td><strong>{ c.Name }</strong> <br/><code style="font-size: 0.75rem;">{ c.ConceptID }</code></td>
+									<td><span class="badge badge-neutral">{ c.Stage }</span></td>
+									<td style="font-style: italic;">"{ c.MatchedPhrase }"</td>
+									<td>{ fmt.Sprintf("%.2f", c.Confidence) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</div>
+
+			<!-- Detected Concepts (Point A) -->
+			<div class="card">
+				<h3 class="card-header">Point A: Detected Concepts (Code Analysis)</h3>
+				if len(eval.ActualConcepts) == 0 {
+					if eval.TestResult == model.TestStatusFail {
+						<p style="color: #8b949e; font-size: 0.85rem; font-style: italic;">Evaluation halted at Test Gate. Static program analysis was skipped because candidate code failed required test cases.</p>
+					} else {
+						<p style="color: #8b949e; font-size: 0.9rem;">No DSA concepts detected in code.</p>
+					}
+				} else {
+					<table>
+						<thead>
+							<tr>
+								<th>Concept</th>
+								<th>Reachable</th>
+								<th>Output Relevant</th>
+								<th>Confidence</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, c := range eval.ActualConcepts {
+								<tr>
+									<td><strong>{ c.Name }</strong> <br/><code style="font-size: 0.75rem;">{ c.ConceptID }</code></td>
+									<td>
+										if c.Reachable {
+											<span class="badge badge-accept">Yes</span>
+										} else {
+											<span class="badge badge-reject">No</span>
+										}
+									</td>
+									<td>
+										if c.OutputRelevant {
+											<span class="badge badge-accept">Yes</span>
+										} else {
+											<span class="badge badge-rejustify">No</span>
+										}
+									</td>
+									<td>{ fmt.Sprintf("%.2f", c.Confidence) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+			</div>
+		</div>
+
+		<!-- Concrete Line Evidence Card -->
+		if len(eval.Evidence) > 0 {
+			<div class="card">
+				<h3 class="card-header">Concrete Program Evidence</h3>
+				<table>
+					<thead>
+						<tr>
+							<th>Line</th>
+							<th>Type</th>
+							<th>Description</th>
+							<th>Reachable</th>
+							<th>Output Relevant</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, ev := range eval.Evidence {
+							<tr>
+								<td><code>{ fmt.Sprintf("line %d", ev.Line) }</code></td>
+								<td><code>{ ev.Type }</code></td>
+								<td>{ ev.Description }</td>
+								<td>
+									if ev.Reachable {
+										<span class="badge badge-accept">Yes</span>
+									} else {
+										<span class="badge badge-reject">No</span>
+									}
+								</td>
+								<td>
+									if ev.OutputRelevant {
+										<span class="badge badge-accept">Yes</span>
+									} else {
+										<span class="badge badge-neutral">No</span>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+
+		<!-- Concept Match Status Tables -->
+		<div class="card">
+			<h3 class="card-header">Fidelity Synthesis</h3>
+			<div class="grid-2">
+				<div>
+					<h4 style="font-size: 0.95rem; margin-bottom: 8px; color: var(--success-text);">Matched Concepts</h4>
+					if len(eval.MatchedConcepts) == 0 {
+						<p style="color: #8b949e; font-size: 0.85rem;">None</p>
+					} else {
+						<ul style="padding-left: 20px; font-size: 0.85rem;">
+							for _, m := range eval.MatchedConcepts {
+								<li style="margin-bottom: 4px;">
+									<code>{ m.ConceptID }</code> - { m.Notes }
+								</li>
+							}
+						</ul>
+					}
+				</div>
+
+				<div>
+					<h4 style="font-size: 0.95rem; margin-bottom: 8px; color: var(--danger-text);">Missing Claimed Concepts</h4>
+					if len(eval.MissingConcepts) == 0 {
+						<p style="color: #8b949e; font-size: 0.85rem;">None</p>
+					} else {
+						<ul style="padding-left: 20px; font-size: 0.85rem;">
+							for _, m := range eval.MissingConcepts {
+								<li style="margin-bottom: 4px;">
+									<code>{ m.ConceptID }</code> - { m.Notes }
+								</li>
+							}
+						</ul>
+					}
+				</div>
+			</div>
+		</div>
+
+		<!-- Candidate Input Reference -->
+		<div class="card">
+			<h3 class="card-header">Submission Reference</h3>
+			<div style="margin-bottom: 16px;">
+				<label>Candidate Explanation</label>
+				<p style="background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid #30363d; font-size: 0.9rem;">
+					{ eval.Explanation }
+				</p>
+			</div>
+			<div>
+				<label>Candidate Code</label>
+				<pre style="background: #0d1117; padding: 12px; border-radius: 6px; border: 1px solid #30363d; font-family: var(--font-mono); font-size: 0.85rem; overflow-x: auto;">
+					<code>{ eval.SubmissionCode }</code>
+				</pre>
+			</div>
+		</div>
+	}
+}
