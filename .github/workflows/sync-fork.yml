@@ -38,6 +38,7 @@ permissions:
 jobs:
   sync-to-career-cafe:
     name: "Push main → Career-Cafe/dsa-confidence-engine"
+    if: github.repository == 'MishraShardendu22/dsa-confidence-engine'
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout full history"
