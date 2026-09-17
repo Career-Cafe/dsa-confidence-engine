@@ -35,6 +35,7 @@ func NewDetectorRegistry() *DetectorRegistry {
 			&RecursionDFSDetector{},
 			&BFSDetector{},
 			&DPDetector{},
+			&ArraysDetector{},
 		},
 	}
 }
@@ -944,3 +945,132 @@ func (d *DPDetector) Detect(
 
 	return concepts
 }
+
+// 13. Arrays / Sequence Detector
+type ArraysDetector struct{}
+
+func (d *ArraysDetector) Detect(
+	functions []FunctionNode,
+	reachableFuncs map[string]*FunctionNode,
+	relevanceMap map[string]*FunctionRelevance,
+) []model.DetectedConcept {
+	var concepts []model.DetectedConcept
+
+	for _, fn := range functions {
+		isReachable := reachableFuncs[fn.Name] != nil
+		var arrayEvidence []model.Evidence
+		arrayOutputRelevant := false
+
+		// 1. Inspect function arguments for array/list sequence parameters
+		for _, arg := range fn.Args {
+			argLower := strings.ToLower(arg)
+			if strings.Contains(argLower, "num") || strings.Contains(argLower, "arr") ||
+				strings.Contains(argLower, "list") || strings.Contains(argLower, "seq") ||
+				strings.Contains(argLower, "val") || strings.Contains(argLower, "element") {
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, arg)
+				if rel {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           "array_parameter",
+					Line:           fn.LineNo,
+					Description:    fmt.Sprintf("Sequence/Array parameter '%s' in function '%s'", arg, fn.Name),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		// 2. Inspect operations for list allocations, operations, and loops
+		for _, op := range fn.Operations {
+			switch op.Type {
+			case "list_alloc":
+				rel := isReachable
+				if op.Var != "<return>" && op.Var != "" {
+					rel = isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				}
+				if rel {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           "list_allocation",
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("List literal allocated '%s'", op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "list_append", "list_pop":
+				rel := isReachable && IsVariableOutputRelevant(relevanceMap, fn.Name, op.Var)
+				if rel {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           op.Type,
+					Line:           op.LineNo,
+					Description:    fmt.Sprintf("List operation '%s' on '%s'", op.Type, op.Var),
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			case "for_loop":
+				hasRelevant := false
+				for _, iv := range op.IterVars {
+					if IsVariableOutputRelevant(relevanceMap, fn.Name, iv) {
+						hasRelevant = true
+						break
+					}
+				}
+				for _, tv := range op.TargetVars {
+					if IsVariableOutputRelevant(relevanceMap, fn.Name, tv) {
+						hasRelevant = true
+						break
+					}
+				}
+				rel := isReachable && hasRelevant
+				if rel {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           "sequence_iteration",
+					Line:           op.LineNo,
+					Description:    "Iteration over array/sequence elements",
+					Reachable:      isReachable,
+					OutputRelevant: rel,
+				})
+			}
+		}
+
+		// 3. Inspect return expressions for list literals
+		for _, ret := range fn.Returns {
+			trimmed := strings.TrimSpace(ret.Raw)
+			if strings.HasPrefix(trimmed, "[") && strings.HasSuffix(trimmed, "]") {
+				if isReachable {
+					arrayOutputRelevant = true
+				}
+				arrayEvidence = append(arrayEvidence, model.Evidence{
+					Type:           "list_return",
+					Line:           ret.LineNo,
+					Description:    fmt.Sprintf("Returned list expression: %s", trimmed),
+					Reachable:      isReachable,
+					OutputRelevant: isReachable,
+				})
+			}
+		}
+
+		if len(arrayEvidence) > 0 {
+			concepts = append(concepts, model.DetectedConcept{
+				ConceptID:      "arrays",
+				Name:           "Arrays",
+				Category:       "arrays",
+				Evidence:       arrayEvidence,
+				Reachable:      isReachable,
+				OutputRelevant: arrayOutputRelevant,
+				Confidence:     1.0,
+				Role:           model.RoleAuxiliary,
+				Status:         "DETECTED",
+			})
+		}
+	}
+
+	return concepts
+}
+

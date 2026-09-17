@@ -78,11 +78,7 @@ func (a *PythonAnalyzer) Analyze(ctx context.Context, source []byte, contract An
 	}
 
 	// 1. Call graph & Reachability
-	entrypoint := contract.Entrypoint
-	if entrypoint == "" {
-		entrypoint = "solve"
-	}
-	reachableFuncs := ComputeReachableFunctions(resp.Functions, entrypoint)
+	reachableFuncs := ComputeReachableFunctions(resp.Functions, contract)
 
 	// 2. Backward Output Relevance
 	relevanceMap := ComputeOutputRelevance(reachableFuncs)

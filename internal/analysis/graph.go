@@ -1,5 +1,7 @@
 package analysis
 
+import "strings"
+
 type FunctionNode struct {
 	Name         string                `json:"name"`
 	ParentName   string                `json:"parent_name"`
@@ -50,11 +52,13 @@ type VarReadNode struct {
 }
 
 type OperationNode struct {
-	Type   string `json:"type"`
-	LineNo int    `json:"lineno"`
-	Var    string `json:"var,omitempty"`
-	Op     string `json:"op,omitempty"`
-	Target string `json:"target,omitempty"`
+	Type       string   `json:"type"`
+	LineNo     int      `json:"lineno"`
+	Var        string   `json:"var,omitempty"`
+	Op         string   `json:"op,omitempty"`
+	Target     string   `json:"target,omitempty"`
+	IterVars   []string `json:"iter_vars,omitempty"`
+	TargetVars []string `json:"target_vars,omitempty"`
 }
 
 type WhileLoopNode struct {
@@ -64,20 +68,57 @@ type WhileLoopNode struct {
 }
 
 // ComputeReachableFunctions performs BFS from entrypoint to find reachable functions.
-func ComputeReachableFunctions(functions []FunctionNode, entrypoint string) map[string]*FunctionNode {
+func ComputeReachableFunctions(functions []FunctionNode, contract AnalysisContract) map[string]*FunctionNode {
 	funcMap := make(map[string]*FunctionNode, len(functions))
 	for i := range functions {
 		funcMap[functions[i].Name] = &functions[i]
 	}
 
+	entrypoint := contract.Entrypoint
+	if entrypoint == "" {
+		entrypoint = "solve"
+	}
+
 	reachable := make(map[string]*FunctionNode)
 	entry, exists := funcMap[entrypoint]
 	if !exists {
-		if len(functions) == 1 {
-			entry = &functions[0]
-		} else {
-			return reachable
+		for _, alias := range contract.EntrypointAliases {
+			if e, ok := funcMap[alias]; ok {
+				entry = e
+				exists = true
+				break
+			}
 		}
+	}
+
+	if !exists {
+		normProb := strings.ToLower(strings.ReplaceAll(contract.ProblemID, "_", ""))
+		normEntry := strings.ToLower(strings.ReplaceAll(entrypoint, "_", ""))
+		for i := range functions {
+			fnNorm := strings.ToLower(strings.ReplaceAll(functions[i].Name, "_", ""))
+			if fnNorm == normProb || fnNorm == normEntry || fnNorm == "solve" || fnNorm == "solution" {
+				entry = &functions[i]
+				exists = true
+				break
+			}
+		}
+	}
+
+	if !exists {
+		var topLevel []*FunctionNode
+		for i := range functions {
+			if functions[i].ParentName == "" {
+				topLevel = append(topLevel, &functions[i])
+			}
+		}
+		if len(topLevel) == 1 {
+			entry = topLevel[0]
+			exists = true
+		}
+	}
+
+	if !exists {
+		return reachable
 	}
 
 	queue := []*FunctionNode{entry}

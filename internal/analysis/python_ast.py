@@ -128,6 +128,13 @@ class ASTExtractor(ast.NodeVisitor):
             except Exception:
                 pass
 
+            if isinstance(node.value, ast.List):
+                self.current_func["operations"].append({
+                    "type": "list_alloc",
+                    "lineno": node.lineno,
+                    "var": "<return>"
+                })
+
             self.current_func["returns"].append({
                 "lineno": node.lineno,
                 "vars": ret_vars,
@@ -287,6 +294,24 @@ class ASTExtractor(ast.NodeVisitor):
                 "cond_vars": cond_vars,
                 "expr": cond_expr
             })
+        self.generic_visit(node)
+
+    def visit_For(self, node):
+        if self.current_func:
+            target_names = list(self._collect_names(node.target))
+            iter_names = list(self._collect_names(node.iter))
+            self.current_func["operations"].append({
+                "type": "for_loop",
+                "lineno": node.lineno,
+                "target_vars": target_names,
+                "iter_vars": iter_names
+            })
+            for tvar in target_names:
+                self.current_func["var_defs"][tvar] = {
+                    "lineno": node.lineno,
+                    "deps": iter_names,
+                    "kind": "for_target"
+                }
         self.generic_visit(node)
 
 def main():

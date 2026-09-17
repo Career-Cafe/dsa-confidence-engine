@@ -7,8 +7,10 @@ import (
 )
 
 type AnalysisContract struct {
-	Entrypoint string `json:"entrypoint"`
-	Language   string `json:"language"`
+	Entrypoint        string   `json:"entrypoint"`
+	EntrypointAliases []string `json:"entrypoint_aliases,omitempty"`
+	ProblemID         string   `json:"problem_id,omitempty"`
+	Language          string   `json:"language"`
 }
 
 type AnalysisResult struct {
