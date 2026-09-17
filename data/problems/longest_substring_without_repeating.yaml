@@ -3,6 +3,13 @@ title: Longest Substring Without Repeating Characters
 description: "Given a string s, find the length of the longest substring without duplicate characters."
 language: python
 entrypoint: solve
+entrypoint_aliases:
+  - lengthOfLongestSubstring
+  - longest_substring
+starter_code: |
+  def solve(s):
+      # Write your solution here
+      pass
 tests:
   - id: "1"
     input: "{\"s\": \"abcabcbb\"}"

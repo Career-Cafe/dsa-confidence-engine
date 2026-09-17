@@ -13,6 +13,8 @@ type Problem struct {
 	Description        string     `json:"description" yaml:"description"`
 	Language           string     `json:"language" yaml:"language"`
 	Entrypoint         string     `json:"entrypoint" yaml:"entrypoint"`
+	EntrypointAliases  []string   `json:"entrypoint_aliases,omitempty" yaml:"entrypoint_aliases,omitempty"`
+	StarterCode        string     `json:"starter_code,omitempty" yaml:"starter_code,omitempty"`
 	Tests              []TestCase `json:"tests" yaml:"tests"`
 	AcceptedStrategies []string   `json:"accepted_strategies" yaml:"accepted_strategies"`
 	RequiredConcepts   []string   `json:"required_concepts" yaml:"required_concepts"`

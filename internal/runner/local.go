@@ -26,9 +26,11 @@ func NewLocalRunner(timeoutMs int) *LocalRunner {
 }
 
 type runnerPayload struct {
-	Code       string           `json:"code"`
-	Entrypoint string           `json:"entrypoint"`
-	Tests      []model.TestCase `json:"tests"`
+	Code              string           `json:"code"`
+	ProblemID         string           `json:"problem_id"`
+	Entrypoint        string           `json:"entrypoint"`
+	EntrypointAliases []string         `json:"entrypoint_aliases"`
+	Tests             []model.TestCase `json:"tests"`
 }
 
 type runnerResponse struct {
@@ -42,56 +44,118 @@ type runnerResponse struct {
 
 const pythonHarness = `
 import sys
+import io
 import json
+import ast
 import traceback
 
 def run():
+    real_stdout = sys.stdout
+    real_stderr = sys.stderr
+
     try:
         raw_input = sys.stdin.read()
         payload = json.loads(raw_input)
     except Exception as e:
-        print(json.dumps({
+        real_stdout.write(json.dumps({
             "status": "FAIL",
             "passed_count": 0,
             "failed_count": 1,
             "total_count": 1,
             "error": f"Failed to parse test payload: {str(e)}",
             "details": []
-        }))
+        }) + "\n")
         return
 
     code = payload.get("code", "")
     entrypoint_name = payload.get("entrypoint", "solve")
+    entrypoint_aliases = payload.get("entrypoint_aliases", [])
+    problem_id = payload.get("problem_id", "")
     tests = payload.get("tests", [])
 
     env = {}
+
+    # 1. Parse AST and hoist functions/classes before executing to avoid forward-reference NameErrors
     try:
-        compiled = compile(code, "<submission>", "exec")
-        exec(compiled, env)
+        tree = ast.parse(code)
+        funcs = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
+        others = [n for n in tree.body if not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
+        tree.body = funcs + others
+        ast.fix_missing_locations(tree)
+        compiled = compile(tree, "<submission>", "exec")
     except Exception as e:
         tb = traceback.format_exc()
-        print(json.dumps({
+        real_stdout.write(json.dumps({
             "status": "FAIL",
             "passed_count": 0,
             "failed_count": len(tests) if tests else 1,
             "total_count": len(tests) if tests else 1,
-            "error": f"Compilation/Execution error: {str(e)}\n{tb}",
+            "error": f"Syntax/Compilation error: {str(e)}\n{tb}",
             "details": []
-        }))
+        }) + "\n")
         return
 
-    if entrypoint_name not in env or not callable(env[entrypoint_name]):
-        print(json.dumps({
+    # 2. Redirect stdout/stderr so candidate prints do not break runner JSON
+    capture_buf = io.StringIO()
+    sys.stdout = capture_buf
+    sys.stderr = capture_buf
+    try:
+        exec(compiled, env)
+    except Exception as e:
+        sys.stdout = real_stdout
+        sys.stderr = real_stderr
+        tb = traceback.format_exc()
+        real_stdout.write(json.dumps({
             "status": "FAIL",
             "passed_count": 0,
             "failed_count": len(tests) if tests else 1,
             "total_count": len(tests) if tests else 1,
-            "error": f"Entrypoint function '{entrypoint_name}' not found or not callable",
+            "error": f"Execution error: {str(e)}\n{tb}",
             "details": []
-        }))
+        }) + "\n")
+        return
+    finally:
+        sys.stdout = real_stdout
+        sys.stderr = real_stderr
+
+    # 3. Resolve entrypoint intelligently
+    entrypoint = None
+    if entrypoint_name in env and callable(env[entrypoint_name]):
+        entrypoint = env[entrypoint_name]
+
+    if entrypoint is None:
+        for alias in entrypoint_aliases:
+            if alias in env and callable(env[alias]):
+                entrypoint = env[alias]
+                break
+
+    if entrypoint is None:
+        all_funcs = [n.name for n in funcs if isinstance(n, ast.FunctionDef)]
+        norm_prob = problem_id.replace("_", "").lower()
+        norm_entry = entrypoint_name.replace("_", "").lower()
+        for fname in all_funcs:
+            norm_fname = fname.replace("_", "").lower()
+            if norm_fname == norm_prob or norm_fname == norm_entry or norm_fname in ("solve", "solution"):
+                if fname in env and callable(env[fname]):
+                    entrypoint = env[fname]
+                    break
+
+    if entrypoint is None:
+        all_funcs = [n.name for n in funcs if isinstance(n, ast.FunctionDef)]
+        if len(all_funcs) == 1 and all_funcs[0] in env and callable(env[all_funcs[0]]):
+            entrypoint = env[all_funcs[0]]
+
+    if entrypoint is None:
+        real_stdout.write(json.dumps({
+            "status": "FAIL",
+            "passed_count": 0,
+            "failed_count": len(tests) if tests else 1,
+            "total_count": len(tests) if tests else 1,
+            "error": f"Entrypoint function '{entrypoint_name}' (or alias) not found or not callable",
+            "details": []
+        }) + "\n")
         return
 
-    entrypoint = env[entrypoint_name]
     passed_count = 0
     failed_count = 0
     details = []
@@ -109,23 +173,19 @@ def run():
             return str(val)
 
     def compare(actual, expected_str):
-        # First try raw string match
         actual_str = normalize(actual)
         if actual_str == expected_str:
             return True
-        # Try JSON comparison
         try:
             exp_json = json.loads(expected_str)
             act_json = json.loads(actual_str)
             if exp_json == act_json:
                 return True
-            # For list comparisons where order might not matter or string vs bool
             if isinstance(exp_json, list) and isinstance(act_json, list):
                 if exp_json == act_json:
                     return True
         except Exception:
             pass
-        # Try python bool representation
         if expected_str.lower() in ("true", "false"):
             if str(actual).lower() == expected_str.lower():
                 return True
@@ -138,12 +198,21 @@ def run():
 
         try:
             parsed_input = json.loads(test_input_str)
-            if isinstance(parsed_input, dict):
-                result = entrypoint(**parsed_input)
-            elif isinstance(parsed_input, list):
-                result = entrypoint(*parsed_input)
-            else:
-                result = entrypoint(parsed_input)
+
+            # Isolate prints during individual test case execution
+            call_buf = io.StringIO()
+            sys.stdout = call_buf
+            sys.stderr = call_buf
+            try:
+                if isinstance(parsed_input, dict):
+                    result = entrypoint(**parsed_input)
+                elif isinstance(parsed_input, list):
+                    result = entrypoint(*parsed_input)
+                else:
+                    result = entrypoint(parsed_input)
+            finally:
+                sys.stdout = real_stdout
+                sys.stderr = real_stderr
 
             actual_str = normalize(result)
             is_pass = compare(result, expected_str)
@@ -165,6 +234,8 @@ def run():
                     "error": f"Expected {expected_str}, got {actual_str}"
                 })
         except Exception as e:
+            sys.stdout = real_stdout
+            sys.stderr = real_stderr
             failed_count += 1
             details.append({
                 "id": test_id,
@@ -175,13 +246,13 @@ def run():
             })
 
     status = "PASS" if failed_count == 0 and passed_count > 0 else "FAIL"
-    print(json.dumps({
+    real_stdout.write(json.dumps({
         "status": status,
         "passed_count": passed_count,
         "failed_count": failed_count,
         "total_count": len(tests),
         "details": details
-    }))
+    }) + "\n")
 
 if __name__ == "__main__":
     run()
@@ -196,9 +267,11 @@ func (r *LocalRunner) Run(ctx context.Context, submission model.Submission, prob
 	cmd := exec.CommandContext(execCtx, "python3", "-c", pythonHarness)
 
 	payload := runnerPayload{
-		Code:       submission.SourceCode,
-		Entrypoint: problem.Entrypoint,
-		Tests:      problem.Tests,
+		Code:              submission.SourceCode,
+		ProblemID:         problem.ID,
+		Entrypoint:        problem.Entrypoint,
+		EntrypointAliases: problem.EntrypointAliases,
+		Tests:             problem.Tests,
 	}
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {

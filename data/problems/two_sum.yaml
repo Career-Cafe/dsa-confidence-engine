@@ -3,6 +3,13 @@ title: Two Sum
 description: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target."
 language: python
 entrypoint: solve
+entrypoint_aliases:
+  - twoSum
+  - two_sum
+starter_code: |
+  def solve(nums, target):
+      # Write your solution here
+      pass
 tests:
   - id: "1"
     input: "{\"nums\": [2, 7, 11, 15], \"target\": 9}"

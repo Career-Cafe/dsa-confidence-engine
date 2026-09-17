@@ -3,6 +3,13 @@ title: Valid Palindrome
 description: "Given a string s, return true if it is a palindrome considering only alphanumeric characters and ignoring cases, or false otherwise."
 language: python
 entrypoint: solve
+entrypoint_aliases:
+  - isPalindrome
+  - is_palindrome
+starter_code: |
+  def solve(s):
+      # Write your solution here
+      pass
 tests:
   - id: "1"
     input: "{\"s\": \"A man, a plan, a canal: Panama\"}"
