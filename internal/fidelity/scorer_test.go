@@ -101,4 +101,29 @@ func TestScorer(t *testing.T) {
 			t.Errorf("expected score < 0.90, got %f", res.Score)
 		}
 	})
+
+	// 4. Primary Concept Matched and Generic Auxiliary Concept Missing -> ACCEPT (No Dilution)
+	t.Run("primary matched + missing generic auxiliary concept -> ACCEPT without dilution", func(t *testing.T) {
+		claimed := []model.ClaimedConcept{
+			{ConceptID: "hashmap", Name: "Hash Map"},
+			{ConceptID: "arrays", Name: "Arrays"},
+		}
+		// Code only detected hashmap; arrays not detected
+		actual := []model.DetectedConcept{
+			{
+				ConceptID:      "hashmap",
+				Name:           "Hash Map",
+				Reachable:      true,
+				OutputRelevant: true,
+			},
+		}
+
+		res := scorer.Score(actual, claimed, problem)
+		if res.Decision != model.DecisionAccept {
+			t.Errorf("expected ACCEPT, got %s (score: %f, diags: %v)", res.Decision, res.Score, res.Diagnostics)
+		}
+		if res.Score < 0.95 {
+			t.Errorf("expected score >= 0.95, got %f", res.Score)
+		}
+	})
 }

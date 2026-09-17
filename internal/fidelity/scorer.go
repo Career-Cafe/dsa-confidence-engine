@@ -72,6 +72,39 @@ func (s *Scorer) Score(
 
 	claimedMatchedActuals := make(map[string]bool)
 
+	// Preliminary check: determine whether all claimed primary concepts are matched and output-relevant
+	primaryClaimedCount := 0
+	primaryMatchedCount := 0
+	allPrimaryOutputRelevant := true
+
+	for _, c := range claimed {
+		if primarySet[c.ConceptID] {
+			primaryClaimedCount++
+			var foundActual *model.DetectedConcept
+			if a, ok := actualMap[c.ConceptID]; ok {
+				foundActual = &a
+			} else {
+				for actID, a := range actualMap {
+					if s.ontology != nil && (s.ontology.IsAncestor(actID, c.ConceptID) || s.ontology.IsAncestor(c.ConceptID, actID)) {
+						foundActual = &a
+						break
+					}
+				}
+			}
+			if foundActual != nil && foundActual.Reachable {
+				if foundActual.OutputRelevant {
+					primaryMatchedCount++
+				} else {
+					allPrimaryOutputRelevant = false
+				}
+			} else {
+				allPrimaryOutputRelevant = false
+			}
+		}
+	}
+
+	allPrimaryFullyMatched := primaryClaimedCount > 0 && primaryMatchedCount == primaryClaimedCount && allPrimaryOutputRelevant
+
 	// 1. Evaluate claimed concepts
 	for _, c := range claimed {
 		role := model.RoleSupporting
@@ -88,8 +121,6 @@ func (s *Scorer) Score(
 			weight = 0.5
 		}
 
-		totalWeight += weight
-
 		// Search for actual match directly or hierarchically
 		var foundActual *model.DetectedConcept
 		if a, ok := actualMap[c.ConceptID]; ok {
@@ -105,6 +136,7 @@ func (s *Scorer) Score(
 
 		if foundActual != nil {
 			claimedMatchedActuals[foundActual.ConceptID] = true
+			totalWeight += weight
 
 			if foundActual.Reachable && foundActual.OutputRelevant {
 				earnedWeight += weight
@@ -149,18 +181,34 @@ func (s *Scorer) Score(
 			}
 		} else {
 			// Concept not implemented in code
-			missing = append(missing, model.ConceptMatch{
-				ConceptID:      c.ConceptID,
-				Name:           c.Name,
-				Role:           role,
-				OutputRelevant: false,
-				Contribution:   0.0,
-				Notes:          "Not found in code",
-			})
-			diagnostics = append(diagnostics, fmt.Sprintf(
-				"Candidate claims %s, but no corresponding operations were detected in the source code.",
-				c.ConceptID,
-			))
+			if allPrimaryFullyMatched && (role == model.RoleAuxiliary || isGenericConcept(c.ConceptID)) {
+				missing = append(missing, model.ConceptMatch{
+					ConceptID:      c.ConceptID,
+					Name:           c.Name,
+					Role:           role,
+					OutputRelevant: false,
+					Contribution:   0.0,
+					Notes:          "Generic concept omitted or implicit; primary approach fully verified",
+				})
+				diagnostics = append(diagnostics, fmt.Sprintf(
+					"Candidate mentioned %s in explanation; core primary strategy is fully verified in code.",
+					c.Name,
+				))
+			} else {
+				totalWeight += weight
+				missing = append(missing, model.ConceptMatch{
+					ConceptID:      c.ConceptID,
+					Name:           c.Name,
+					Role:           role,
+					OutputRelevant: false,
+					Contribution:   0.0,
+					Notes:          "Not found in code",
+				})
+				diagnostics = append(diagnostics, fmt.Sprintf(
+					"Candidate claims %s, but no corresponding operations were detected in the source code.",
+					c.ConceptID,
+				))
+			}
 		}
 	}
 
@@ -200,7 +248,10 @@ func (s *Scorer) Score(
 		}
 	}
 
-	rawScore := (earnedWeight / totalWeight) - extraPenalty
+	var rawScore float64
+	if totalWeight > 0 {
+		rawScore = (earnedWeight / totalWeight) - extraPenalty
+	}
 	if rawScore < 0.0 {
 		rawScore = 0.0
 	}
@@ -231,5 +282,16 @@ func (s *Scorer) Score(
 		Extra:       extra,
 		Diagnostics: diagnostics,
 		Explanation: explanation,
+	}
+}
+
+// isGenericConcept identifies foundational sequence, collection, or syntax constructs
+// that represent context rather than high-level algorithmic strategies.
+func isGenericConcept(id string) bool {
+	switch id {
+	case "arrays", "iteration", "strings", "primitives", "linear_scan", "variables":
+		return true
+	default:
+		return false
 	}
 }

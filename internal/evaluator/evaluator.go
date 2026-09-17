@@ -91,8 +91,10 @@ func (e *Evaluator) Evaluate(
 
 	// 2. Tests Passed -> Run Point A (Actual code analysis)
 	analysisRes, err := e.analyzer.Analyze(ctx, []byte(submission.SourceCode), analysis.AnalysisContract{
-		Entrypoint: problem.Entrypoint,
-		Language:   problem.Language,
+		Entrypoint:        problem.Entrypoint,
+		EntrypointAliases: problem.EntrypointAliases,
+		ProblemID:         problem.ID,
+		Language:          problem.Language,
 	})
 	if err != nil {
 		return nil, err

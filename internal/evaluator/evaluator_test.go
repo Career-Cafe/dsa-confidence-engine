@@ -151,4 +151,51 @@ def solve(nums, target):
 			t.Errorf("expected Decision REJECT for claimed binary search, got %s (score: %f)", res.Decision, res.FidelityScore)
 		}
 	})
+
+	// 4. User's exact submission (with top-level print before def and twoSum naming) -> ACCEPT
+	t.Run("user exact submission with forward print and twoSum name -> ACCEPT", func(t *testing.T) {
+		userCode := `nums = [2, 7, 11, 15]
+target = 9
+
+print(twoSum(nums, target))  # [0, 1]
+
+def twoSum(nums, target):
+    seen = {}
+
+    for i, num in enumerate(nums):
+        complement = target - num
+
+        if complement in seen:
+            return [seen[complement], i]
+
+        seen[num] = i
+
+    return []`
+
+		userExplanation := "So I will iterate through the array, keep a Hashmap storing their index, match target - current number, check for this value in hte Hashmap, if found return these two index the current and the one stored in Hashmap else return empty array for not found."
+
+		sub := model.Submission{
+			ProblemID:   "two_sum",
+			SourceCode:  userCode,
+			Explanation: userExplanation,
+		}
+
+		userProblem := problem
+		userProblem.EntrypointAliases = []string{"twoSum", "two_sum"}
+
+		res, err := eval.Evaluate(ctx, sub, userProblem)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if res.TestResult != model.TestStatusPass {
+			t.Fatalf("expected TestResult PASS, got %s (diags: %v)", res.TestResult, res.Diagnostics)
+		}
+		if res.Decision != model.DecisionAccept {
+			t.Errorf("expected Decision ACCEPT, got %s (score: %f, diags: %v)", res.Decision, res.FidelityScore, res.Diagnostics)
+		}
+		if res.FidelityScore < 0.95 {
+			t.Errorf("expected score >= 0.95, got %f", res.FidelityScore)
+		}
+	})
 }
