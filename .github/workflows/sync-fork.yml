@@ -45,22 +45,21 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: false
 
-      - name: "Validate CC_SYNC_PAT secret is configured"
+      - name: "Configure SSH and push to Career-Cafe fork"
+        env:
+          SSH_KEY: ${{ secrets.CC_SYNC_SSH_KEY }}
         run: |
-          if [ -z "${{ secrets.CC_SYNC_PAT }}" ]; then
-            echo "❌ CC_SYNC_PAT secret is not set."
-            echo "Add it at: https://github.com/MishraShardendu22/dsa-confidence-engine/settings/secrets/actions"
+          if [ -z "$SSH_KEY" ]; then
+            echo "❌ CC_SYNC_SSH_KEY secret is not set."
             exit 1
           fi
-          echo "✅ CC_SYNC_PAT is configured."
-
-      - name: "Push main to Career-Cafe/dsa-confidence-engine"
-        run: |
-          git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
-          git remote add career-cafe \
-            "https://x-access-token:${{ secrets.CC_SYNC_PAT }}@github.com/Career-Cafe/dsa-confidence-engine.git"
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519,rsa github.com >> ~/.ssh/known_hosts
+          git remote add career-cafe git@github.com:Career-Cafe/dsa-confidence-engine.git || git remote set-url career-cafe git@github.com:Career-Cafe/dsa-confidence-engine.git
           git push career-cafe main:main --force
           echo "✅ Career-Cafe/dsa-confidence-engine synced to $(git rev-parse --short HEAD)"
+
 
