@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"github.com/gofiber/fiber/v2"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/api"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/model"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/service"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/util"
+	"github.com/gofiber/fiber/v2"
 )
 
 type EvaluationController struct {

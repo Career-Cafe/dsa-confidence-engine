@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/analysis"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/api"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/controller"
@@ -22,6 +21,7 @@ import (
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/repository"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/runner"
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/service"
+	"github.com/gofiber/fiber/v2"
 )
 
 func setupTestApp(t *testing.T) (*fiber.App, *repository.SQLiteRepository) {
