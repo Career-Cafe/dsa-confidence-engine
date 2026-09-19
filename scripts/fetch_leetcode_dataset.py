@@ -161,20 +161,40 @@ def build_problem_record(raw_q):
 
     entrypoint = camel_id
     aliases = list(dict.fromkeys([camel_id, snake_id, "solve", "solution"]))
-    starter_code = f"def {entrypoint}(*args, **kwargs):\n    # Candidate implementation\n    pass\n"
+
+    try:
+        from scripts.update_starter_code_signatures import infer_parameters, make_test_input
+    except ImportError:
+        try:
+            from update_starter_code_signatures import infer_parameters, make_test_input
+        except ImportError:
+            infer_parameters = lambda p: ["nums"]
+            make_test_input = lambda params, is_edge=False: "{\"nums\": []}" if is_edge else "{\"nums\": [1, 2, 3]}"
+
+    prob_meta = {
+        "id": problem_id,
+        "title": title,
+        "entrypoint": entrypoint,
+        "topic_tags": topic_tags,
+        "primary_concepts": primary_concepts,
+        "accepted_strategies": accepted_strategies,
+    }
+    params = infer_parameters(prob_meta)
+    param_str = ", ".join(params)
+    starter_code = f"def {entrypoint}({param_str}):\n    # Candidate solution for #{qid} {title}\n    pass\n"
 
     tests = [
         {
             "id": "1",
-            "name": "Standard test case 1",
-            "input": "{\"nums\": [1, 2, 3]}",
+            "name": f"Standard input ({param_str})",
+            "input": make_test_input(params, is_edge=False),
             "expected_output": "0",
             "description": "Standard representative test case"
         },
         {
             "id": "2",
-            "name": "Edge case empty or boundary",
-            "input": "{\"nums\": []}",
+            "name": f"Boundary edge input ({param_str})",
+            "input": make_test_input(params, is_edge=True),
             "expected_output": "0",
             "description": "Boundary edge case test"
         }

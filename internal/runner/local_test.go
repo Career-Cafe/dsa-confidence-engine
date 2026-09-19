@@ -138,4 +138,48 @@ def solve(nums):
 	if res.Status != model.TestStatusPass {
 		t.Errorf("expected single list argument to PASS, got %s (error: %s)", res.Status, res.Error)
 	}
+
+	// Case 7: Positional argument mapping when dict keys differ (e.g. solve(a, b) with {"nums": [...], "target": 9})
+	positionalCode := `
+def solve(a, b):
+    seen = {}
+    for i, n in enumerate(a):
+        diff = b - n
+        if diff in seen:
+            return [seen[diff], i]
+        seen[n] = i
+    return []
+`
+	res, err = r.Run(ctx, model.Submission{SourceCode: positionalCode}, problem)
+	if err != nil {
+		t.Fatalf("unexpected error running positional mapping: %v", err)
+	}
+	if res.Status != model.TestStatusPass {
+		t.Errorf("expected positional mapping to PASS, got %s (error: %s)", res.Status, res.Error)
+	}
+
+	// Case 8: Function accepting subset of dictionary keys (e.g. solve(nums) for {"nums": [...], "target": 9})
+	singleParamDictProb := model.Problem{
+		ID:         "two_sum_single",
+		Language:   "python",
+		Entrypoint: "solve",
+		Tests: []model.TestCase{
+			{
+				ID:             "1",
+				Input:          "{\"nums\": [1, 2, 3], \"target\": 3}",
+				ExpectedOutput: "3",
+			},
+		},
+	}
+	singleParamDictCode := `
+def solve(nums):
+    return len(nums)
+`
+	res, err = r.Run(ctx, model.Submission{SourceCode: singleParamDictCode}, singleParamDictProb)
+	if err != nil {
+		t.Fatalf("unexpected error running partial dict param: %v", err)
+	}
+	if res.Status != model.TestStatusPass {
+		t.Errorf("expected partial dict param to PASS, got %s (error: %s)", res.Status, res.Error)
+	}
 }

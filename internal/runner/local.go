@@ -243,7 +243,28 @@ def run():
             sys.stderr = call_buf
             try:
                 if isinstance(parsed_input, dict):
-                    result = entrypoint(**parsed_input)
+                    try:
+                        import inspect
+                        sig = inspect.signature(entrypoint)
+                        has_varkw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
+                        if has_varkw:
+                            result = entrypoint(**parsed_input)
+                        else:
+                            accepted_params = {p.name for p in sig.parameters.values() if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD, p.KEYWORD_ONLY)}
+                            matched_kwargs = {k: v for k, v in parsed_input.items() if k in accepted_params}
+                            if len(matched_kwargs) == len(accepted_params) and len(matched_kwargs) > 0:
+                                result = entrypoint(**matched_kwargs)
+                            else:
+                                pos_params = [p for p in sig.parameters.values() if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
+                                vals = list(parsed_input.values())
+                                if len(pos_params) == len(vals):
+                                    result = entrypoint(*vals)
+                                elif len(matched_kwargs) > 0:
+                                    result = entrypoint(**matched_kwargs)
+                                else:
+                                    result = entrypoint(**parsed_input)
+                    except Exception:
+                        result = entrypoint(**parsed_input)
                 elif isinstance(parsed_input, list):
                     try:
                         import inspect
