@@ -9,8 +9,12 @@
 # Test artifacts & databases
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 data/*.db
 data/*.db-journal
+data/*.db-wal
+data/*.db-shm
 
 # Python caches
 __pycache__/
@@ -21,3 +25,4 @@ __pycache__/
 # OS artifacts
 .DS_Store
 Thumbs.db
+tmp/

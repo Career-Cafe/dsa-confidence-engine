@@ -66,6 +66,15 @@ type ConceptMatch struct {
 	Notes          string      `json:"notes,omitempty"`
 }
 
+type TestCaseDetail struct {
+	ID             string `json:"id"`
+	Input          string `json:"input,omitempty"`
+	Passed         bool   `json:"passed"`
+	ExpectedOutput string `json:"expected"`
+	ActualOutput   string `json:"actual"`
+	Error          string `json:"error,omitempty"`
+}
+
 type Evaluation struct {
 	ID              string            `json:"id"`
 	ProblemID       string            `json:"problem_id"`
@@ -75,6 +84,7 @@ type Evaluation struct {
 	PassedTests     int               `json:"passed_tests"`
 	FailedTests     int               `json:"failed_tests"`
 	TotalTests      int               `json:"total_tests"`
+	TestDetails     []TestCaseDetail  `json:"test_details,omitempty"`
 	ActualConcepts  []DetectedConcept `json:"actual_concepts"`
 	ClaimedConcepts []ClaimedConcept  `json:"claimed_concepts"`
 	MatchedConcepts []ConceptMatch    `json:"matched_concepts"`

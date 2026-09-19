@@ -2,6 +2,7 @@ package runner_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/model"
@@ -181,5 +182,95 @@ def solve(nums):
 	}
 	if res.Status != model.TestStatusPass {
 		t.Errorf("expected partial dict param to PASS, got %s (error: %s)", res.Status, res.Error)
+	}
+
+	// Case 9: LeetCode-style top-level method with self parameter (pasted from LeetCode editor without class Solution)
+	accountsProb := model.Problem{
+		ID:         "accounts_merge",
+		Language:   "python",
+		Entrypoint: "accountsMerge",
+		Tests: []model.TestCase{
+			{
+				ID:             "1",
+				Input:          "{\"accounts\": [[\"John\", \"johnsmith@mail.com\", \"john_newyork@mail.com\"], [\"John\", \"johnsmith@mail.com\", \"john00@mail.com\"], [\"Mary\", \"mary@mail.com\"], [\"John\", \"johnnybravo@mail.com\"]]}",
+				ExpectedOutput: "[[\"John\", \"john00@mail.com\", \"john_newyork@mail.com\", \"johnsmith@mail.com\"], [\"Mary\", \"mary@mail.com\"], [\"John\", \"johnnybravo@mail.com\"]]",
+			},
+			{
+				ID:             "2",
+				Input:          "{\"accounts\": [[\"Gabe\", \"Gabe0@m.co\", \"Gabe3@m.co\", \"Gabe1@m.co\"], [\"Kevin\", \"Kevin3@m.co\", \"Kevin5@m.co\", \"Kevin0@m.co\"], [\"Ethan\", \"Ethan5@m.co\", \"Ethan4@m.co\", \"Ethan0@m.co\"], [\"Hanzo\", \"Hanzo3@m.co\", \"Hanzo1@m.co\", \"Hanzo0@m.co\"], [\"Fern\", \"Fern5@m.co\", \"Fern1@m.co\", \"Fern0@m.co\"]]}",
+				ExpectedOutput: "[[\"Ethan\", \"Ethan0@m.co\", \"Ethan4@m.co\", \"Ethan5@m.co\"], [\"Fern\", \"Fern0@m.co\", \"Fern1@m.co\", \"Fern5@m.co\"], [\"Gabe\", \"Gabe0@m.co\", \"Gabe1@m.co\", \"Gabe3@m.co\"], [\"Hanzo\", \"Hanzo0@m.co\", \"Hanzo1@m.co\", \"Hanzo3@m.co\"], [\"Kevin\", \"Kevin0@m.co\", \"Kevin3@m.co\", \"Kevin5@m.co\"]]",
+			},
+		},
+	}
+	topLevelSelfCode := `
+def accountsMerge(self, accounts):
+    parent = {}
+    rank = {}
+    email_to_name = {}
+
+    def find(email):
+        if parent[email] != email:
+            parent[email] = find(parent[email])
+        return parent[email]
+
+    def union(email1, email2):
+        root1 = find(email1)
+        root2 = find(email2)
+        if root1 == root2:
+            return
+        if rank[root1] < rank[root2]:
+            root1, root2 = root2, root1
+        parent[root2] = root1
+        if rank[root1] == rank[root2]:
+            rank[root1] += 1
+
+    for account in accounts:
+        name = account[0]
+        first_email = account[1]
+        if first_email not in parent:
+            parent[first_email] = first_email
+            rank[first_email] = 0
+        email_to_name[first_email] = name
+
+        for email in account[2:]:
+            if email not in parent:
+                parent[email] = email
+                rank[email] = 0
+            email_to_name[email] = name
+            union(first_email, email)
+
+    groups = {}
+    for email in parent:
+        root = find(email)
+        if root not in groups:
+            groups[root] = []
+        groups[root].append(email)
+
+    result = []
+    for emails in groups.values():
+        emails.sort()
+        result.append([email_to_name[emails[0]]] + emails)
+    return result
+`
+	res, err = r.Run(ctx, model.Submission{SourceCode: topLevelSelfCode}, accountsProb)
+	if err != nil {
+		t.Fatalf("unexpected error running top-level self accountsMerge: %v", err)
+	}
+	if res.Status != model.TestStatusPass {
+		t.Errorf("expected top-level self accountsMerge to PASS, got %s (error: %s)", res.Status, res.Error)
+	}
+
+	// Case 10: LeetCode class Solution wrapping the exact same accountsMerge
+	var classSolutionCode string
+	for _, line := range strings.Split(strings.TrimSpace(topLevelSelfCode), "\n") {
+		classSolutionCode += "    " + line + "\n"
+	}
+	classSolutionCode = "class Solution:\n" + classSolutionCode
+	res, err = r.Run(ctx, model.Submission{SourceCode: classSolutionCode}, accountsProb)
+	if err != nil {
+		t.Fatalf("unexpected error running class Solution accountsMerge: %v", err)
+	}
+	if res.Status != model.TestStatusPass {
+		t.Errorf("expected class Solution accountsMerge to PASS, got %s (error: %s)", res.Status, res.Error)
 	}
 }

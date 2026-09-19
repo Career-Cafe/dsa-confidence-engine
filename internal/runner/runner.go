@@ -6,13 +6,7 @@ import (
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/model"
 )
 
-type TestCaseDetail struct {
-	ID             string `json:"id"`
-	Passed         bool   `json:"passed"`
-	ExpectedOutput string `json:"expected"`
-	ActualOutput   string `json:"actual"`
-	Error          string `json:"error,omitempty"`
-}
+type TestCaseDetail = model.TestCaseDetail
 
 type TestResult struct {
 	Status      model.TestStatus `json:"status"`

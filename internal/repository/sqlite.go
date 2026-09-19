@@ -95,6 +95,7 @@ func (r *SQLiteRepository) migrate() error {
 		reason TEXT,
 		evidence_json TEXT NOT NULL,
 		diagnostics_json TEXT NOT NULL,
+		test_details_json TEXT DEFAULT '[]',
 		duration_ms INTEGER NOT NULL,
 		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
@@ -110,6 +111,7 @@ func (r *SQLiteRepository) migrate() error {
 	_, _ = r.db.Exec("ALTER TABLE problems ADD COLUMN hints_json TEXT DEFAULT '[]';")
 	_, _ = r.db.Exec("ALTER TABLE problems ADD COLUMN time_limit_ms INTEGER DEFAULT 2000;")
 	_, _ = r.db.Exec("ALTER TABLE problems ADD COLUMN memory_limit_mb INTEGER DEFAULT 256;")
+	_, _ = r.db.Exec("ALTER TABLE evaluations ADD COLUMN test_details_json TEXT DEFAULT '[]';")
 	return nil
 }
 
@@ -399,6 +401,10 @@ func (r *SQLiteRepository) SaveEvaluation(ctx context.Context, e *model.Evaluati
 	if err != nil {
 		return fmt.Errorf("failed to marshal diagnostics: %w", err)
 	}
+	testDetailsJSON, err := json.Marshal(e.TestDetails)
+	if err != nil {
+		testDetailsJSON = []byte("[]")
+	}
 
 	query := `
 	INSERT INTO evaluations (
@@ -406,9 +412,9 @@ func (r *SQLiteRepository) SaveEvaluation(ctx context.Context, e *model.Evaluati
 		passed_tests, failed_tests, total_tests,
 		actual_concepts_json, claimed_concepts_json, matched_concepts_json,
 		missing_concepts_json, extra_concepts_json, fidelity_score,
-		decision, reason, evidence_json, diagnostics_json,
+		decision, reason, evidence_json, diagnostics_json, test_details_json,
 		duration_ms, created_at
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	createdAt := e.CreatedAt
 	if createdAt.IsZero() {
@@ -420,7 +426,7 @@ func (r *SQLiteRepository) SaveEvaluation(ctx context.Context, e *model.Evaluati
 		e.PassedTests, e.FailedTests, e.TotalTests,
 		string(actualJSON), string(claimedJSON), string(matchedJSON),
 		string(missingJSON), string(extraJSON), e.FidelityScore,
-		string(e.Decision), e.Reason, string(evidenceJSON), string(diagJSON),
+		string(e.Decision), e.Reason, string(evidenceJSON), string(diagJSON), string(testDetailsJSON),
 		e.DurationMs, createdAt,
 	)
 	return err
@@ -432,7 +438,7 @@ func (r *SQLiteRepository) GetEvaluation(ctx context.Context, id string) (*model
 	       passed_tests, failed_tests, total_tests,
 	       actual_concepts_json, claimed_concepts_json, matched_concepts_json,
 	       missing_concepts_json, extra_concepts_json, fidelity_score,
-	       decision, reason, evidence_json, diagnostics_json,
+	       decision, reason, evidence_json, diagnostics_json, COALESCE(test_details_json, '[]'),
 	       duration_ms, created_at
 	FROM evaluations WHERE id = ?
 	`
@@ -440,7 +446,7 @@ func (r *SQLiteRepository) GetEvaluation(ctx context.Context, id string) (*model
 
 	var e model.Evaluation
 	var testRes, decision string
-	var actualJSON, claimedJSON, matchedJSON, missingJSON, extraJSON, evidenceJSON, diagJSON string
+	var actualJSON, claimedJSON, matchedJSON, missingJSON, extraJSON, evidenceJSON, diagJSON, testDetailsJSON string
 	var reason sql.NullString
 
 	err := row.Scan(
@@ -448,7 +454,7 @@ func (r *SQLiteRepository) GetEvaluation(ctx context.Context, id string) (*model
 		&e.PassedTests, &e.FailedTests, &e.TotalTests,
 		&actualJSON, &claimedJSON, &matchedJSON,
 		&missingJSON, &extraJSON, &e.FidelityScore,
-		&decision, &reason, &evidenceJSON, &diagJSON,
+		&decision, &reason, &evidenceJSON, &diagJSON, &testDetailsJSON,
 		&e.DurationMs, &e.CreatedAt,
 	)
 	if err == sql.ErrNoRows {
@@ -456,6 +462,9 @@ func (r *SQLiteRepository) GetEvaluation(ctx context.Context, id string) (*model
 	}
 	if err != nil {
 		return nil, err
+	}
+	if testDetailsJSON != "" {
+		_ = json.Unmarshal([]byte(testDetailsJSON), &e.TestDetails)
 	}
 
 	e.TestResult = model.TestStatus(testRes)

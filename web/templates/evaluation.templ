@@ -5,6 +5,41 @@ import (
 	"github.com/MishraShardendu22/dsa-confidence-engine/internal/model"
 )
 
+func testBorder(passed bool) string {
+	if passed {
+		return "1px solid rgba(35, 134, 54, 0.4)"
+	}
+	return "1px solid rgba(218, 54, 51, 0.6)"
+}
+
+func testBg(passed bool) string {
+	if passed {
+		return "rgba(35, 134, 54, 0.05)"
+	}
+	return "rgba(218, 54, 51, 0.08)"
+}
+
+func outputBorder(passed bool) string {
+	if passed {
+		return "1px solid rgba(35, 134, 54, 0.4)"
+	}
+	return "1px solid rgba(218, 54, 51, 0.5)"
+}
+
+func outputBg(passed bool) string {
+	if passed {
+		return "rgba(35, 134, 54, 0.08)"
+	}
+	return "rgba(218, 54, 51, 0.12)"
+}
+
+func outputColor(passed bool) string {
+	if passed {
+		return "#3fb950"
+	}
+	return "#f85149"
+}
+
 templ Evaluation(eval *model.Evaluation) {
 	@Layout(fmt.Sprintf("Evaluation %s", eval.ID)) {
 		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -56,6 +91,102 @@ templ Evaluation(eval *model.Evaluation) {
 				</div>
 			</div>
 		</div>
+
+		<!-- Test Case Side-by-Side Execution & Output Comparison -->
+		if len(eval.TestDetails) > 0 {
+			<div class="card">
+				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">
+					<h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-bright); margin: 0;">
+						Test Cases (Input &amp; Output Side-by-Side)
+					</h3>
+					<div>
+						if eval.TestResult == model.TestStatusPass {
+							<span class="badge badge-accept">ALL TEST CASES MATCH</span>
+						} else {
+							<span class="badge badge-reject">TEST DISCREPANCY DETECTED</span>
+						}
+					</div>
+				</div>
+
+				for idx, t := range eval.TestDetails {
+					<div style={ fmt.Sprintf("margin-bottom: 20px; padding: 16px; border-radius: 8px; border: %s; background: %s;", testBorder(t.Passed), testBg(t.Passed)) }>
+						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+							<div style="display: flex; align-items: center; gap: 10px;">
+								<span style="font-weight: 600; color: #f0f6fc; font-size: 0.95rem;">Test Case #{ fmt.Sprintf("%d", idx+1) } (ID: <code>{ t.ID }</code>)</span>
+								if t.Passed {
+									<span class="badge badge-accept">PASSED</span>
+								} else {
+									<span class="badge badge-reject">FAILED</span>
+								}
+							</div>
+						</div>
+
+						if !t.Passed {
+							<!-- Failure Diagnostic Banner: Prominently identifies where code failed -->
+							<div style="background: rgba(218, 54, 51, 0.2); border: 1px solid var(--danger); border-radius: 6px; padding: 10px 14px; margin-bottom: 14px;">
+								<div style="font-weight: 700; color: var(--danger-text); font-size: 0.85rem; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+									<span>FAILED HERE:</span>
+								</div>
+								<div style="font-family: var(--font-mono); font-size: 0.85rem; color: #f0f6fc; white-space: pre-wrap; word-break: break-all;">
+									if t.Error != "" {
+										{ t.Error }
+									} else {
+										{ fmt.Sprintf("Output discrepancy: Expected '%s', but received '%s'", t.ExpectedOutput, t.ActualOutput) }
+									}
+								</div>
+							</div>
+						}
+
+						<!-- Side-by-Side: Input on Left, Output Comparison on Right -->
+						<div class="grid-2" style="gap: 16px;">
+							<!-- LEFT: Input Arguments -->
+							<div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px;">
+								<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+									<span style="font-size: 0.8rem; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Input (Arguments)</span>
+									<span style="font-size: 0.75rem; color: #58a6ff; font-family: var(--font-mono);">test_case_{ t.ID }</span>
+								</div>
+								<pre style="margin: 0; font-family: var(--font-mono); font-size: 0.85rem; color: #f0f6fc; background: transparent; overflow-x: auto; white-space: pre-wrap; word-break: break-all;">
+									<code>{ t.Input }</code>
+								</pre>
+							</div>
+
+							<!-- RIGHT: Output Comparison (Expected vs Actual) -->
+							<div style="background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px;">
+								<div style="margin-bottom: 12px;">
+									<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+										<span style="font-size: 0.8rem; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Expected Output</span>
+										<span style="font-size: 0.75rem; color: var(--success-text);">Canonical Expected</span>
+									</div>
+									<pre style="margin: 0; padding: 8px; border-radius: 4px; border: 1px solid rgba(35, 134, 54, 0.4); background: rgba(35, 134, 54, 0.08); font-family: var(--font-mono); font-size: 0.85rem; color: #3fb950; overflow-x: auto; white-space: pre-wrap; word-break: break-all;">
+										<code>{ t.ExpectedOutput }</code>
+									</pre>
+								</div>
+
+								<div>
+									<div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+										<span style="font-size: 0.8rem; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px;">Actual Output (Your Code)</span>
+										if t.Passed {
+											<span style="font-size: 0.75rem; color: var(--success-text); font-weight: 600;">Match</span>
+										} else {
+											<span style="font-size: 0.75rem; color: var(--danger-text); font-weight: 600;">Mismatch</span>
+										}
+									</div>
+									<pre style={ fmt.Sprintf("margin: 0; padding: 8px; border-radius: 4px; border: %s; background: %s; font-family: var(--font-mono); font-size: 0.85rem; color: %s; overflow-x: auto; white-space: pre-wrap; word-break: break-all;", outputBorder(t.Passed), outputBg(t.Passed), outputColor(t.Passed)) }>
+										<code>
+											if t.ActualOutput != "" {
+												{ t.ActualOutput }
+											} else {
+												<span style="font-style: italic; color: #8b949e;">[No output returned / Exception occurred]</span>
+											}
+										</code>
+									</pre>
+								</div>
+							</div>
+						</div>
+					</div>
+				}
+			</div>
+		}
 
 		<!-- Diagnostics Card -->
 		if len(eval.Diagnostics) > 0 {
