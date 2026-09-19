@@ -88,7 +88,7 @@ func TestDataset2KEvaluationPipeline(t *testing.T) {
 		sub := model.Submission{
 			ProblemID: prob.ID,
 			SourceCode: `
-def twoSum(nums):
+def twoSum(nums, target=0):
     seen = {}
     for i, x in enumerate(nums):
         if x in seen:
@@ -121,7 +121,7 @@ def twoSum(nums):
 		sub := model.Submission{
 			ProblemID: prob.ID,
 			SourceCode: `
-def twoSum(nums):
+def twoSum(nums, target=0):
     return -9999
 `,
 			Explanation: "We iterate through the array.",
@@ -144,7 +144,7 @@ def twoSum(nums):
 		sub := model.Submission{
 			ProblemID: prob.ID,
 			SourceCode: `
-def twoSum(nums):
+def twoSum(nums, target=0):
     seen = {}
     for i, x in enumerate(nums):
         seen[x] = 0
