@@ -134,7 +134,29 @@ def run():
     norm_entry = entrypoint_name.replace("_", "").lower()
 
     entrypoint = None
-    if entrypoint_name in env and callable(env[entrypoint_name]):
+
+    # Support LeetCode style class Solution
+    if "Solution" in env and isinstance(env["Solution"], type):
+        try:
+            sol_instance = env["Solution"]()
+            if hasattr(sol_instance, entrypoint_name) and callable(getattr(sol_instance, entrypoint_name)):
+                entrypoint = getattr(sol_instance, entrypoint_name)
+            if entrypoint is None:
+                for alias in entrypoint_aliases:
+                    if hasattr(sol_instance, alias) and callable(getattr(sol_instance, alias)):
+                        entrypoint = getattr(sol_instance, alias)
+                        break
+            if entrypoint is None:
+                for attr in dir(sol_instance):
+                    if not attr.startswith("_") and callable(getattr(sol_instance, attr)):
+                        norm_attr = attr.replace("_", "").lower()
+                        if norm_attr == norm_prob or norm_attr == norm_entry or norm_attr in ("solve", "solution"):
+                            entrypoint = getattr(sol_instance, attr)
+                            break
+        except Exception:
+            pass
+
+    if entrypoint is None and entrypoint_name in env and callable(env[entrypoint_name]):
         entrypoint = env[entrypoint_name]
 
     if entrypoint is None:
@@ -157,24 +179,16 @@ def run():
         if len(all_funcs) == 1 and all_funcs[0] in env and callable(env[all_funcs[0]]):
             entrypoint = env[all_funcs[0]]
 
-    # Support LeetCode style class Solution
-    if entrypoint is None and "Solution" in env and isinstance(env["Solution"], type):
+    # If candidate defined standalone function with 'self' or 'cls' (e.g. copied from LeetCode without class header)
+    if entrypoint is not None:
         try:
-            sol_instance = env["Solution"]()
-            if hasattr(sol_instance, entrypoint_name) and callable(getattr(sol_instance, entrypoint_name)):
-                entrypoint = getattr(sol_instance, entrypoint_name)
-            if entrypoint is None:
-                for alias in entrypoint_aliases:
-                    if hasattr(sol_instance, alias) and callable(getattr(sol_instance, alias)):
-                        entrypoint = getattr(sol_instance, alias)
-                        break
-            if entrypoint is None:
-                for attr in dir(sol_instance):
-                    if not attr.startswith("_") and callable(getattr(sol_instance, attr)):
-                        norm_attr = attr.replace("_", "").lower()
-                        if norm_attr == norm_prob or norm_attr == norm_entry or norm_attr in ("solve", "solution"):
-                            entrypoint = getattr(sol_instance, attr)
-                            break
+            import inspect
+            if not inspect.ismethod(entrypoint) and callable(entrypoint):
+                sig = inspect.signature(entrypoint)
+                params = list(sig.parameters.values())
+                if params and params[0].name in ("self", "cls"):
+                    dummy = type("Solution", (), {})()
+                    entrypoint = entrypoint.__get__(dummy, type(dummy))
         except Exception:
             pass
 
@@ -222,6 +236,21 @@ def run():
             if isinstance(exp_json, list) and isinstance(act_json, list):
                 if exp_json == act_json:
                     return True
+                def sort_key(item):
+                    if isinstance(item, list):
+                        return json.dumps(item)
+                    if isinstance(item, dict):
+                        return json.dumps(item, sort_keys=True)
+                    return str(item)
+                try:
+                    if sorted(exp_json, key=sort_key) == sorted(act_json, key=sort_key):
+                        return True
+                    exp_deep_sorted = sorted([sorted(x, key=sort_key) if isinstance(x, list) else x for x in exp_json], key=sort_key)
+                    act_deep_sorted = sorted([sorted(x, key=sort_key) if isinstance(x, list) else x for x in act_json], key=sort_key)
+                    if exp_deep_sorted == act_deep_sorted:
+                        return True
+                except Exception:
+                    pass
         except Exception:
             pass
         if expected_str.lower() in ("true", "false"):
@@ -291,6 +320,7 @@ def run():
                 passed_count += 1
                 details.append({
                     "id": test_id,
+                    "input": test_input_str,
                     "passed": True,
                     "expected": expected_str,
                     "actual": actual_str
@@ -299,6 +329,7 @@ def run():
                 failed_count += 1
                 details.append({
                     "id": test_id,
+                    "input": test_input_str,
                     "passed": False,
                     "expected": expected_str,
                     "actual": actual_str,
@@ -310,6 +341,7 @@ def run():
             failed_count += 1
             details.append({
                 "id": test_id,
+                "input": test_input_str,
                 "passed": False,
                 "expected": expected_str,
                 "actual": "",

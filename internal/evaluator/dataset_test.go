@@ -165,4 +165,154 @@ def twoSum(nums, target=0):
 			t.Errorf("expected penalized score for bluffing explanation, got score=%.3f, decision=%s", res.FidelityScore, res.Decision)
 		}
 	})
+
+	// 4. LeetCode Accounts Merge Solution with top-level self signature
+	t.Run("leetcode accounts merge with top level self passes tests and gets accepted", func(t *testing.T) {
+		advProb, err := repo.GetProblem(ctx, "adv_accounts_merge_union_find")
+		if err != nil {
+			t.Fatalf("failed to find adv_accounts_merge_union_find: %v", err)
+		}
+
+		sub := model.Submission{
+			ProblemID: advProb.ID,
+			SourceCode: `
+def accountsMerge(self, accounts):
+    parent = {}
+    rank = {}
+    email_to_name = {}
+
+    def find(email):
+        if parent[email] != email:
+            parent[email] = find(parent[email])
+        return parent[email]
+
+    def union(email1, email2):
+        root1 = find(email1)
+        root2 = find(email2)
+        if root1 == root2:
+            return
+        if rank[root1] < rank[root2]:
+            root1, root2 = root2, root1
+        parent[root2] = root1
+        if rank[root1] == rank[root2]:
+            rank[root1] += 1
+
+    for account in accounts:
+        name = account[0]
+        first_email = account[1]
+        if first_email not in parent:
+            parent[first_email] = first_email
+            rank[first_email] = 0
+        email_to_name[first_email] = name
+
+        for email in account[2:]:
+            if email not in parent:
+                parent[email] = email
+                rank[email] = 0
+            email_to_name[email] = name
+            union(first_email, email)
+
+    groups = {}
+    for email in parent:
+        root = find(email)
+        if root not in groups:
+            groups[root] = []
+        groups[root].append(email)
+
+    result = []
+    for emails in groups.values():
+        emails.sort()
+        result.append([email_to_name[emails[0]]] + emails)
+    return result
+`,
+			Explanation: "I used a disjoint set union-find data structure with path compression and rank optimization to merge connected accounts sharing emails.",
+		}
+
+		res, err := eval.Evaluate(ctx, sub, *advProb)
+		if err != nil {
+			t.Fatalf("evaluation failed: %v", err)
+		}
+		if res.TestResult != model.TestStatusPass {
+			t.Errorf("expected test PASS, got %s (diags: %v)", res.TestResult, res.Diagnostics)
+		}
+		if res.Decision != model.DecisionAccept {
+			t.Errorf("expected ACCEPT decision, got %s (score: %.3f, diags: %v)", res.Decision, res.FidelityScore, res.Diagnostics)
+		}
+	})
+
+	// 5. LeetCode Accounts Merge Solution inside class Solution
+	t.Run("leetcode accounts merge inside class Solution passes tests and gets accepted", func(t *testing.T) {
+		advProb, err := repo.GetProblem(ctx, "adv_accounts_merge_union_find")
+		if err != nil {
+			t.Fatalf("failed to find adv_accounts_merge_union_find: %v", err)
+		}
+
+		classCode := `
+class Solution:
+    def accountsMerge(self, accounts: list[list[str]]) -> list[list[str]]:
+        parent = {}
+        rank = {}
+        email_to_name = {}
+
+        def find(email):
+            if parent[email] != email:
+                parent[email] = find(parent[email])
+            return parent[email]
+
+        def union(email1, email2):
+            root1 = find(email1)
+            root2 = find(email2)
+            if root1 == root2:
+                return
+            if rank[root1] < rank[root2]:
+                root1, root2 = root2, root1
+            parent[root2] = root1
+            if rank[root1] == rank[root2]:
+                rank[root1] += 1
+
+        for account in accounts:
+            name = account[0]
+            first_email = account[1]
+            if first_email not in parent:
+                parent[first_email] = first_email
+                rank[first_email] = 0
+            email_to_name[first_email] = name
+
+            for email in account[2:]:
+                if email not in parent:
+                    parent[email] = email
+                    rank[email] = 0
+                email_to_name[email] = name
+                union(first_email, email)
+
+        groups = {}
+        for email in parent:
+            root = find(email)
+            if root not in groups:
+                groups[root] = []
+            groups[root].append(email)
+
+        result = []
+        for emails in groups.values():
+            emails.sort()
+            result.append([email_to_name[emails[0]]] + emails)
+        return result
+`
+		sub := model.Submission{
+			ProblemID:   advProb.ID,
+			SourceCode:  classCode,
+			Explanation: "I implemented union find disjoint sets with rank heuristic and path compression to merge accounts.",
+		}
+
+		res, err := eval.Evaluate(ctx, sub, *advProb)
+		if err != nil {
+			t.Fatalf("evaluation failed: %v", err)
+		}
+		if res.TestResult != model.TestStatusPass {
+			t.Errorf("expected test PASS, got %s (diags: %v)", res.TestResult, res.Diagnostics)
+		}
+		if res.Decision != model.DecisionAccept {
+			t.Errorf("expected ACCEPT decision, got %s (score: %.3f, diags: %v)", res.Decision, res.FidelityScore, res.Diagnostics)
+		}
+	})
 }
