@@ -942,7 +942,9 @@ func (d *RecursionDFSDetector) Detect(
 					strings.Contains(argLow, "tree") || strings.Contains(argLow, "visited") ||
 					strings.Contains(argLow, "seen") || strings.Contains(argLow, "neighbor") ||
 					strings.Contains(argLow, "adj") || strings.Contains(argLow, "grid") ||
-					strings.Contains(argLow, "row") || strings.Contains(argLow, "col") {
+					strings.Contains(argLow, "row") || strings.Contains(argLow, "col") ||
+					argLow == "r" || argLow == "c" || argLow == "x" || argLow == "y" ||
+					strings.Contains(argLow, "board") || strings.Contains(argLow, "matrix") {
 					hasDFSSignal = true
 					break
 				}
@@ -951,10 +953,15 @@ func (d *RecursionDFSDetector) Detect(
 				vLow := strings.ToLower(varName)
 				if strings.Contains(vLow, "visited") || strings.Contains(vLow, "seen") ||
 					strings.Contains(vLow, "neighbor") || strings.Contains(vLow, "adj") ||
-					strings.Contains(vLow, "graph") {
+					strings.Contains(vLow, "graph") || strings.Contains(vLow, "board") ||
+					strings.Contains(vLow, "matrix") || strings.Contains(vLow, "grid") ||
+					vLow == "r" || vLow == "c" || vLow == "rows" || vLow == "cols" {
 					hasDFSSignal = true
 					break
 				}
+			}
+			if len(recEvidence) >= 2 {
+				hasDFSSignal = true
 			}
 
 			hasBacktrackingSignal := false
@@ -1203,6 +1210,8 @@ func (d *DPDetector) Detect(
 			vLow := strings.ToLower(varName)
 			if strings.Contains(vLow, "cur_max") || strings.Contains(vLow, "curr_max") ||
 				strings.Contains(vLow, "cur_min") || strings.Contains(vLow, "curr_min") ||
+				strings.Contains(vLow, "cur_sum") || strings.Contains(vLow, "curr_sum") ||
+				strings.Contains(vLow, "max_sum") || strings.Contains(vLow, "running_sum") ||
 				strings.Contains(vLow, "max_so_far") || strings.Contains(vLow, "max_ending") ||
 				strings.Contains(vLow, "max_prod") || strings.Contains(vLow, "min_prod") ||
 				strings.Contains(vLow, "kadane") {
@@ -1601,10 +1610,19 @@ func (d *GreedyDetector) Detect(
 		outRel := false
 		isGreedy := false
 
-		// Check for greedy variable names and parameters
+		hasGasCostRead := false
+		for _, vr := range fn.VarReads {
+			rLow := strings.ToLower(vr.Var)
+			if rLow == "gas" || rLow == "cost" {
+				hasGasCostRead = true
+				break
+			}
+		}
+
+		// Check for greedy variable names
 		for varName, def := range fn.VarDefs {
 			vLower := strings.ToLower(varName)
-			if strings.Contains(vLower, "reach") || strings.Contains(vLower, "greedy") || strings.Contains(vLower, "farthest") || strings.Contains(vLower, "best") || strings.Contains(vLower, "gas") || strings.Contains(vLower, "interval") {
+			if strings.Contains(vLower, "reach") || strings.Contains(vLower, "greedy") || strings.Contains(vLower, "farthest") || strings.Contains(vLower, "best") || strings.Contains(vLower, "gas") || strings.Contains(vLower, "interval") || strings.Contains(vLower, "tank") || strings.Contains(vLower, "deficit") || (hasGasCostRead && (vLower == "total" || vLower == "start")) {
 				isGreedy = true
 				evidence = append(evidence, model.Evidence{
 					Type:           "greedy_variable",
@@ -1615,21 +1633,6 @@ func (d *GreedyDetector) Detect(
 				})
 			}
 		}
-
-		for _, arg := range fn.Args {
-			aLower := strings.ToLower(arg)
-			if strings.Contains(aLower, "gas") || strings.Contains(aLower, "cost") || strings.Contains(aLower, "interval") {
-				isGreedy = true
-				evidence = append(evidence, model.Evidence{
-					Type:           "greedy_variable",
-					Line:           fn.LineNo,
-					Description:    fmt.Sprintf("Greedy tracking parameter '%s'", arg),
-					Reachable:      isReachable,
-					OutputRelevant: isReachable,
-				})
-			}
-		}
-
 		// Check for max/min call inside function
 		for _, call := range fn.Calls {
 			cLower := strings.ToLower(call.Name)
@@ -1732,7 +1735,27 @@ func (d *TopologicalSortDetector) Detect(
 			}
 		}
 
-		if (hasIndegree && (hasQueue || hasGraph)) || (hasGraph && hasQueue && len(evidence) > 0) {
+		hasDfsCycle := false
+		for _, subFn := range functions {
+			if strings.Contains(strings.ToLower(subFn.Name), "dfs") && hasGraph {
+				for v := range fn.VarDefs {
+					vLow := strings.ToLower(v)
+					if strings.Contains(vLow, "visit") || strings.Contains(vLow, "state") || strings.Contains(vLow, "color") {
+						hasDfsCycle = true
+						evidence = append(evidence, model.Evidence{
+							Type:           "topological_dfs_cycle",
+							Line:           subFn.LineNo,
+							Description:    "DFS topological ordering and cycle detection",
+							Reachable:      isReachable,
+							OutputRelevant: isReachable,
+						})
+						break
+					}
+				}
+			}
+		}
+
+		if (hasIndegree && (hasQueue || hasGraph)) || (hasGraph && hasQueue && len(evidence) > 0) || hasDfsCycle {
 			rel := isReachable
 			if rel {
 				outRel = true
