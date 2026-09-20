@@ -72,11 +72,12 @@ var HandcraftedSolutionPairs = map[string]SolutionPair{
     def dfs(node):
         if node in visited:
             return visited[node]
-        visited[node] = True
+        visited[node] = list(adj[node - 1])
         for nei in adj[node - 1]:
             dfs(nei)
+        return visited[node]
     dfs(1)
-    return [list(x) for x in adj]
+    return [visited[i + 1] if (i + 1) in visited else list(adj[i]) for i in range(len(adj))]
 `,
 		OptimalExplanation: "We use depth-first search (DFS) with a visited dictionary to traverse and clone all reachable graph nodes.",
 		AltCode: `def solve(adj):
@@ -891,13 +892,28 @@ def solve(operations, args):
 	},
 	"median_of_two_sorted_arrays": {
 		OptimalCode: `def solve(nums1, nums2):
-    merged = sorted(nums1 + nums2)
-    n = len(merged)
-    if n % 2 == 1:
-        return float(merged[n // 2])
-    return (merged[n // 2 - 1] + merged[n // 2]) / 2.0
+    if len(nums1) > len(nums2):
+        nums1, nums2 = nums2, nums1
+    m, n = len(nums1), len(nums2)
+    low, high = 0, m
+    while low <= high:
+        i = (low + high) // 2
+        j = (m + n + 1) // 2 - i
+        max_left_1 = float('-inf') if i == 0 else nums1[i - 1]
+        min_right_1 = float('inf') if i == m else nums1[i]
+        max_left_2 = float('-inf') if j == 0 else nums2[j - 1]
+        min_right_2 = float('inf') if j == n else nums2[j]
+        if max_left_1 <= min_right_2 and max_left_2 <= min_right_1:
+            if (m + n) % 2 == 1:
+                return float(max(max_left_1, max_left_2))
+            return (max(max_left_1, max_left_2) + min(min_right_1, min_right_2)) / 2.0
+        elif max_left_1 > min_right_2:
+            high = i - 1
+        else:
+            low = i + 1
+    return 0.0
 `,
-		OptimalExplanation: "We merge the two sorted arrays and extract the middle median elements.",
+		OptimalExplanation: "We use binary search partition on the smaller array to find the median in logarithmic time.",
 		AltCode: `def solve(nums1, nums2):
     m, n = len(nums1), len(nums2)
     arr = []
@@ -1181,13 +1197,21 @@ def solve(operations, args):
 	},
 	"permutation_in_string": {
 		OptimalCode: `def solve(s1, s2):
-    from collections import Counter
     if len(s1) > len(s2):
         return False
-    c1 = Counter(s1)
     k = len(s1)
-    for i in range(len(s2) - k + 1):
-        if Counter(s2[i:i + k]) == c1:
+    c1 = {}
+    c2 = {}
+    for c in s1:
+        c1[c] = c1.get(c, 0) + 1
+    for i in range(len(s2)):
+        c2[s2[i]] = c2.get(s2[i], 0) + 1
+        if i >= k:
+            left_ch = s2[i - k]
+            c2[left_ch] -= 1
+            if c2[left_ch] == 0:
+                del c2[left_ch]
+        if c1 == c2:
             return True
     return False
 `,
@@ -1645,5 +1669,167 @@ def solve(operations, args):
     return False
 `,
 		AltExplanation: "We use DFS backtracking with a visited set.",
+	},
+	"adv_accounts_merge_union_find": {
+		OptimalCode: `def accountsMerge(accounts):
+    parent = {}
+    rank = {}
+    email_to_name = {}
+
+    def find(email):
+        if parent[email] != email:
+            parent[email] = find(parent[email])
+        return parent[email]
+
+    def union(email1, email2):
+        root1 = find(email1)
+        root2 = find(email2)
+        if root1 == root2:
+            return
+        if rank[root1] < rank[root2]:
+            root1, root2 = root2, root1
+        parent[root2] = root1
+        if rank[root1] == rank[root2]:
+            rank[root1] += 1
+
+    for account in accounts:
+        name = account[0]
+        first_email = account[1]
+        if first_email not in parent:
+            parent[first_email] = first_email
+            rank[first_email] = 0
+        email_to_name[first_email] = name
+
+        for email in account[2:]:
+            if email not in parent:
+                parent[email] = email
+                rank[email] = 0
+            email_to_name[email] = name
+            union(first_email, email)
+
+    groups = {}
+    for email in parent:
+        root = find(email)
+        if root not in groups:
+            groups[root] = []
+        groups[root].append(email)
+
+    result = []
+    for emails in groups.values():
+        emails.sort()
+        result.append([email_to_name[emails[0]]] + emails)
+    return result
+`,
+		OptimalExplanation: "We implement a disjoint set union-find (DSU) data structure with path compression and rank heuristic to merge accounts.",
+		AltCode: `def accountsMerge(accounts):
+    from collections import defaultdict
+    graph = defaultdict(set)
+    email_to_name = {}
+    for acc in accounts:
+        name = acc[0]
+        for email in acc[1:]:
+            graph[acc[1]].add(email)
+            graph[email].add(acc[1])
+            email_to_name[email] = name
+    visited = set()
+    result = []
+    for email in graph:
+        if email not in visited:
+            visited.add(email)
+            component = []
+            stack = [email]
+            while stack:
+                curr = stack.pop()
+                component.append(curr)
+                for nei in graph[curr]:
+                    if nei not in visited:
+                        visited.add(nei)
+                        stack.append(nei)
+            component.sort()
+            result.append([email_to_name[email]] + component)
+    return result
+`,
+		AltExplanation: "We build an adjacency graph of connected emails and perform depth-first search (DFS) with a visited set to find connected components.",
+	},
+	"lc_721_accounts_merge": {
+		OptimalCode: `def accountsMerge(accounts):
+    parent = {}
+    rank = {}
+    email_to_name = {}
+
+    def find(email):
+        if parent[email] != email:
+            parent[email] = find(parent[email])
+        return parent[email]
+
+    def union(email1, email2):
+        root1 = find(email1)
+        root2 = find(email2)
+        if root1 == root2:
+            return
+        if rank[root1] < rank[root2]:
+            root1, root2 = root2, root1
+        parent[root2] = root1
+        if rank[root1] == rank[root2]:
+            rank[root1] += 1
+
+    for account in accounts:
+        name = account[0]
+        first_email = account[1]
+        if first_email not in parent:
+            parent[first_email] = first_email
+            rank[first_email] = 0
+        email_to_name[first_email] = name
+
+        for email in account[2:]:
+            if email not in parent:
+                parent[email] = email
+                rank[email] = 0
+            email_to_name[email] = name
+            union(first_email, email)
+
+    groups = {}
+    for email in parent:
+        root = find(email)
+        if root not in groups:
+            groups[root] = []
+        groups[root].append(email)
+
+    result = []
+    for emails in groups.values():
+        emails.sort()
+        result.append([email_to_name[emails[0]]] + emails)
+    return result
+`,
+		OptimalExplanation: "We implement a disjoint set union-find (DSU) data structure with path compression and rank heuristic to merge accounts.",
+		AltCode: `def accountsMerge(accounts):
+    from collections import defaultdict
+    graph = defaultdict(set)
+    email_to_name = {}
+    for acc in accounts:
+        name = acc[0]
+        for email in acc[1:]:
+            graph[acc[1]].add(email)
+            graph[email].add(acc[1])
+            email_to_name[email] = name
+    visited = set()
+    result = []
+    for email in graph:
+        if email not in visited:
+            visited.add(email)
+            component = []
+            stack = [email]
+            while stack:
+                curr = stack.pop()
+                component.append(curr)
+                for nei in graph[curr]:
+                    if nei not in visited:
+                        visited.add(nei)
+                        stack.append(nei)
+            component.sort()
+            result.append([email_to_name[email]] + component)
+    return result
+`,
+		AltExplanation: "We build an adjacency graph of connected emails and perform depth-first search (DFS) with a visited set to find connected components.",
 	},
 }
