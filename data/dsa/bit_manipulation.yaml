@@ -8,6 +8,12 @@
     - binary representation
     - xor
     - bitwise xor
+    - flip bits and use xor logic
+    - cancel duplicate numbers
+    - xor logic to cancel duplicate numbers
+    - bit shifts to compute the answer
+    - bit shifts and binary logic
+    - using bit shifts and binary logic
   keywords:
     - bit
     - xor

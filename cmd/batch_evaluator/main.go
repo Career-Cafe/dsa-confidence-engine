@@ -541,11 +541,344 @@ func printBatchReport(stats BatchStats, batchNum, startIdx, endIdx, totalCatalog
 	fmt.Println(strings.Repeat("=", 80))
 }
 
+type ProblemTriplet struct {
+	ProblemID                      string `json:"problem_id"`
+	Title                          string `json:"title"`
+	Entrypoint                     string `json:"entrypoint"`
+	PrimaryConcept                 string `json:"primary_concept"`
+	SolutionCode                   string `json:"solution_code"`
+	ExplanationCorrectRelevant     string `json:"explanation_correct_relevant"`
+	ExplanationCorrectLessRelevant string `json:"explanation_correct_less_relevant"`
+	ExplanationIncorrect           string `json:"explanation_incorrect"`
+}
+
+type TripletBatchStats struct {
+	TotalProblems   int
+	TotalEvals      int64
+	V1Total         int64
+	V1Passed        int64
+	V1Accepted      int64
+	V2Total         int64
+	V2Passed        int64
+	V2Accepted      int64
+	V3Total         int64
+	V3Passed        int64
+	V3Rejected      int64
+	TP, TN, FP, FN  int64
+	TotalDurationMs int64
+	Elapsed         time.Duration
+	Failures        []FailureRecord
+}
+
+func runTripletsBatch(
+	ctx context.Context,
+	eval *evaluator.Evaluator,
+	triplets []ProblemTriplet,
+	probMap map[string]model.Problem,
+	numWorkers int,
+	batchNum int,
+) TripletBatchStats {
+	var subs []BatchSubmission
+
+	for _, t := range triplets {
+		// Variant 1: Correct and relevant
+		subs = append(subs, BatchSubmission{
+			ProblemID:        t.ProblemID,
+			Category:         "TIER_1_RELEVANT",
+			Code:             t.SolutionCode,
+			Explanation:      t.ExplanationCorrectRelevant,
+			ExpectedDecision: model.DecisionAccept,
+			GroundTruthValid: true,
+		})
+
+		// Variant 2: Correct and less relevant (colloquial)
+		subs = append(subs, BatchSubmission{
+			ProblemID:        t.ProblemID,
+			Category:         "TIER_2_LESS_RELEVANT",
+			Code:             t.SolutionCode,
+			Explanation:      t.ExplanationCorrectLessRelevant,
+			ExpectedDecision: model.DecisionAccept,
+			GroundTruthValid: true,
+		})
+
+		// Variant 3: Incorrect (bluffing)
+		subs = append(subs, BatchSubmission{
+			ProblemID:        t.ProblemID,
+			Category:         "TIER_3_INCORRECT",
+			Code:             t.SolutionCode,
+			Explanation:      t.ExplanationIncorrect,
+			ExpectedDecision: model.DecisionReject,
+			GroundTruthValid: false,
+		})
+	}
+
+	jobs := make(chan BatchSubmission, len(subs))
+	for _, s := range subs {
+		jobs <- s
+	}
+	close(jobs)
+
+	var tp, tn, fp, fn int64
+	var v1Total, v1Passed, v1Accepted int64
+	var v2Total, v2Passed, v2Accepted int64
+	var v3Total, v3Passed, v3Rejected int64
+	var totalDurationMs int64
+	var failuresMu sync.Mutex
+	var failures []FailureRecord
+
+	start := time.Now()
+	var wg sync.WaitGroup
+
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for s := range jobs {
+				prob, ok := probMap[s.ProblemID]
+				if !ok {
+					continue
+				}
+
+				sub := model.Submission{
+					ProblemID:   s.ProblemID,
+					SourceCode:  s.Code,
+					Explanation: s.Explanation,
+				}
+
+				evalStart := time.Now()
+				res, err := eval.Evaluate(ctx, sub, prob)
+				dur := time.Since(evalStart).Milliseconds()
+				atomic.AddInt64(&totalDurationMs, dur)
+
+				if err != nil {
+					failuresMu.Lock()
+					failures = append(failures, FailureRecord{
+						ProblemID:   s.ProblemID,
+						Category:    s.Category,
+						Expected:    s.ExpectedDecision,
+						Actual:      "ERROR",
+						Diagnostics: []string{err.Error()},
+					})
+					failuresMu.Unlock()
+					continue
+				}
+
+				isPassedTests := res.TestResult == model.TestStatusPass
+				isAccept := res.Decision == model.DecisionAccept
+				expectedAccept := s.ExpectedDecision == model.DecisionAccept
+
+				switch s.Category {
+				case "TIER_1_RELEVANT":
+					atomic.AddInt64(&v1Total, 1)
+					if isPassedTests {
+						atomic.AddInt64(&v1Passed, 1)
+					}
+					if isAccept {
+						atomic.AddInt64(&v1Accepted, 1)
+					}
+				case "TIER_2_LESS_RELEVANT":
+					atomic.AddInt64(&v2Total, 1)
+					if isPassedTests {
+						atomic.AddInt64(&v2Passed, 1)
+					}
+					if isAccept {
+						atomic.AddInt64(&v2Accepted, 1)
+					}
+				case "TIER_3_INCORRECT":
+					atomic.AddInt64(&v3Total, 1)
+					if isPassedTests {
+						atomic.AddInt64(&v3Passed, 1)
+					}
+					if !isAccept {
+						atomic.AddInt64(&v3Rejected, 1)
+					}
+				}
+
+				if isAccept && expectedAccept {
+					atomic.AddInt64(&tp, 1)
+				} else if !isAccept && !expectedAccept {
+					atomic.AddInt64(&tn, 1)
+				} else if isAccept && !expectedAccept {
+					atomic.AddInt64(&fp, 1)
+					failuresMu.Lock()
+					failures = append(failures, FailureRecord{
+						ProblemID:   s.ProblemID,
+						Category:    s.Category,
+						Expected:    s.ExpectedDecision,
+						Actual:      res.Decision,
+						Score:       res.FidelityScore,
+						Diagnostics: res.Diagnostics,
+					})
+					failuresMu.Unlock()
+				} else if !isAccept && expectedAccept {
+					atomic.AddInt64(&fn, 1)
+					failuresMu.Lock()
+					failures = append(failures, FailureRecord{
+						ProblemID:   s.ProblemID,
+						Category:    s.Category,
+						Expected:    s.ExpectedDecision,
+						Actual:      res.Decision,
+						Score:       res.FidelityScore,
+						Diagnostics: res.Diagnostics,
+					})
+					failuresMu.Unlock()
+				}
+			}
+		}()
+	}
+
+	wg.Wait()
+	elapsed := time.Since(start)
+
+	return TripletBatchStats{
+		TotalProblems:   len(triplets),
+		TotalEvals:      int64(len(subs)),
+		V1Total:         v1Total,
+		V1Passed:        v1Passed,
+		V1Accepted:      v1Accepted,
+		V2Total:         v2Total,
+		V2Passed:        v2Passed,
+		V2Accepted:      v2Accepted,
+		V3Total:         v3Total,
+		V3Passed:        v3Passed,
+		V3Rejected:      v3Rejected,
+		TP:              tp,
+		TN:              tn,
+		FP:              fp,
+		FN:              fn,
+		TotalDurationMs: totalDurationMs,
+		Elapsed:         elapsed,
+		Failures:        failures,
+	}
+}
+
+func printTripletBatchReport(stats TripletBatchStats, batchNum, startIdx, endIdx, totalCatalog int) {
+	total := stats.TotalEvals
+	accuracy := 0.0
+	if total > 0 {
+		accuracy = float64(stats.TP+stats.TN) / float64(total) * 100
+	}
+	var precision, recall, specificity, f1 float64
+	if stats.TP+stats.FP > 0 {
+		precision = float64(stats.TP) / float64(stats.TP+stats.FP) * 100
+	}
+	if stats.TP+stats.FN > 0 {
+		recall = float64(stats.TP) / float64(stats.TP+stats.FN) * 100
+	}
+	if stats.TN+stats.FP > 0 {
+		specificity = float64(stats.TN) / float64(stats.TN+stats.FP) * 100
+	}
+	if precision+recall > 0 {
+		f1 = 2 * (precision * recall) / (precision + recall) / 100
+	}
+	avgLatency := 0.0
+	if total > 0 {
+		avgLatency = float64(stats.TotalDurationMs) / float64(total)
+	}
+	throughput := 0.0
+	if stats.Elapsed.Seconds() > 0 {
+		throughput = float64(total) / stats.Elapsed.Seconds()
+	}
+
+	v1Sens := 0.0
+	if stats.V1Total > 0 {
+		v1Sens = float64(stats.V1Accepted) / float64(stats.V1Total) * 100
+	}
+	v2Sens := 0.0
+	if stats.V2Total > 0 {
+		v2Sens = float64(stats.V2Accepted) / float64(stats.V2Total) * 100
+	}
+	v3Spec := 0.0
+	if stats.V3Total > 0 {
+		v3Spec = float64(stats.V3Rejected) / float64(stats.V3Total) * 100
+	}
+
+	fmt.Println("\n" + strings.Repeat("=", 80))
+	fmt.Printf("   TRIPLET BATCH %2d REPORT -- QUESTIONS [%d to %d] of %d\n", batchNum, startIdx+1, endIdx, totalCatalog)
+	fmt.Println(strings.Repeat("=", 80))
+	fmt.Printf("Problems Ingested     : %d (3 explanation tiers = %d evaluations)\n", stats.TotalProblems, total)
+	fmt.Printf("Batch Execution Time  : %v (%.1f evals/sec)\n", stats.Elapsed, throughput)
+	fmt.Printf("Average Latency / Eval: %.2fms\n", avgLatency)
+	fmt.Println(strings.Repeat("-", 80))
+	fmt.Println("EXPLANATION TIER METRICS:")
+	fmt.Printf("  Tier 1 (Correct & Relevant)     : %6.2f%% Accepted  (%d/%d)\n", v1Sens, stats.V1Accepted, stats.V1Total)
+	fmt.Printf("  Tier 2 (Correct & Less Relevant): %6.2f%% Accepted  (%d/%d)\n", v2Sens, stats.V2Accepted, stats.V2Total)
+	fmt.Printf("  Tier 3 (Incorrect / Bluffing)   : %6.2f%% Rejected  (%d/%d) [Anti-Cheat Specificity]\n", v3Spec, stats.V3Rejected, stats.V3Total)
+	fmt.Println(strings.Repeat("-", 80))
+	fmt.Println("CONFUSION MATRIX:")
+	fmt.Printf("  True Positives  (TP): %5d  [Relevant / Colloquial Approach -> ACCEPT]\n", stats.TP)
+	fmt.Printf("  True Negatives  (TN): %5d  [Incorrect / Bluffing Approach  -> REJECT]\n", stats.TN)
+	fmt.Printf("  False Positives (FP): %5d  [CRITICAL CHEATING: Bluff Accepted]\n", stats.FP)
+	fmt.Printf("  False Negatives (FN): %5d  [VALID SOLUTION FALSELY REJECTED]\n", stats.FN)
+	fmt.Println(strings.Repeat("-", 80))
+	fmt.Println("OVERALL PERFORMANCE:")
+	fmt.Printf("  Accuracy            : %6.2f%%\n", accuracy)
+	fmt.Printf("  Precision           : %6.2f%%\n", precision)
+	fmt.Printf("  Recall / Sensitivity: %6.2f%%\n", recall)
+	fmt.Printf("  Specificity         : %6.2f%%\n", specificity)
+	fmt.Printf("  F1-Score            : %6.4f\n", f1)
+	fmt.Println(strings.Repeat("-", 80))
+
+	if len(stats.Failures) > 0 {
+		fmt.Printf("DISCREPANCIES & FAILURES: %d total\n", len(stats.Failures))
+		var tier1, tier2, tier3 []FailureRecord
+		for _, f := range stats.Failures {
+			switch f.Category {
+			case "TIER_1_RELEVANT":
+				tier1 = append(tier1, f)
+			case "TIER_2_LESS_RELEVANT":
+				tier2 = append(tier2, f)
+			case "TIER_3_INCORRECT":
+				tier3 = append(tier3, f)
+			}
+		}
+
+		if len(tier1) > 0 {
+			fmt.Printf("\n--- TIER 1 (RELEVANT) FAILURES (%d) ---\n", len(tier1))
+			for _, f := range tier1 {
+				fmt.Printf("  - Problem: %s | Expected: %s, Got: %s (Score: %.3f)\n", f.ProblemID, f.Expected, f.Actual, f.Score)
+				if len(f.Diagnostics) > 0 {
+					fmt.Printf("    Diags: %s\n", strings.Join(f.Diagnostics, "; "))
+				}
+			}
+		}
+
+		if len(tier3) > 0 {
+			fmt.Printf("\n--- TIER 3 (ANTI-BLUFFING) FAILURES (%d) [CRITICAL] ---\n", len(tier3))
+			for _, f := range tier3 {
+				fmt.Printf("  - Problem: %s | Expected: %s, Got: %s (Score: %.3f)\n", f.ProblemID, f.Expected, f.Actual, f.Score)
+				if len(f.Diagnostics) > 0 {
+					fmt.Printf("    Diags: %s\n", strings.Join(f.Diagnostics, "; "))
+				}
+			}
+		}
+
+		if len(tier2) > 0 {
+			fmt.Printf("\n--- TIER 2 (COLLOQUIAL) FAILURES (%d) ---\n", len(tier2))
+			for i, f := range tier2 {
+				if i >= 10 {
+					fmt.Printf("  ... and %d more Tier 2 colloquial discrepancies\n", len(tier2)-10)
+					break
+				}
+				fmt.Printf("  - Problem: %s | Expected: %s, Got: %s (Score: %.3f)\n", f.ProblemID, f.Expected, f.Actual, f.Score)
+				if len(f.Diagnostics) > 0 {
+					fmt.Printf("    Diags: %s\n", strings.Join(f.Diagnostics, "; "))
+				}
+			}
+		}
+	} else {
+		fmt.Println("STATUS: 100% CLEAN BATCH -- ZERO FALSE POSITIVES, ZERO FALSE NEGATIVES")
+	}
+	fmt.Println(strings.Repeat("=", 80))
+}
+
 func main() {
 	startFlag := flag.Int("start", 0, "Starting problem index (0-indexed)")
 	limitFlag := flag.Int("limit", 200, "Number of problems to evaluate in this run")
 	workersFlag := flag.Int("workers", 32, "Number of concurrent worker goroutines")
-	allFlag := flag.Bool("all", false, "Run across all 4,052 catalog questions in sequential 200-problem batches")
+	allFlag := flag.Bool("all", false, "Run across all catalog questions in sequential batches")
+	tripletsFlag := flag.String("triplets", "data/benchmark/problem_solutions_triplets.json", "Path to problem solutions triplets JSON")
+	legacyFlag := flag.Bool("legacy", false, "Run legacy 5-category evaluation instead of triplets")
 	flag.Parse()
 
 	// 1. Initialize Evaluator
@@ -592,23 +925,98 @@ func main() {
 		probMap[p.ID] = p
 	}
 
-	if *allFlag {
-		fmt.Printf("\n=== RUNNING FULL CATALOG EVALUATION (%d PROBLEMS IN BATCHES OF %d) ===\n", totalCatalog, *limitFlag)
-		batchNum := 1
-		var cumulative BatchStats
-		globalStart := time.Now()
+	if *legacyFlag {
+		if *allFlag {
+			fmt.Printf("\n=== RUNNING LEGACY FULL CATALOG EVALUATION (%d PROBLEMS IN BATCHES OF %d) ===\n", totalCatalog, *limitFlag)
+			batchNum := 1
+			var cumulative BatchStats
+			globalStart := time.Now()
 
-		for start := 0; start < totalCatalog; start += *limitFlag {
+			for start := 0; start < totalCatalog; start += *limitFlag {
+				end := start + *limitFlag
+				if end > totalCatalog {
+					end = totalCatalog
+				}
+
+				batchProblems := allProblems[start:end]
+				stats := runBatch(ctx, eval, batchProblems, probMap, *workersFlag, batchNum)
+				printBatchReport(stats, batchNum, start, end, totalCatalog)
+
+				cumulative.TotalTests += stats.TotalTests
+				cumulative.TP += stats.TP
+				cumulative.TN += stats.TN
+				cumulative.FP += stats.FP
+				cumulative.FN += stats.FN
+				cumulative.TotalDurationMs += stats.TotalDurationMs
+				cumulative.Failures = append(cumulative.Failures, stats.Failures...)
+
+				batchNum++
+			}
+
+			cumulative.Elapsed = time.Since(globalStart)
+			fmt.Println("\n" + strings.Repeat("#", 80))
+			fmt.Printf("   FINAL CUMULATIVE CATALOG EVALUATION REPORT (%d PROBLEMS)\n", totalCatalog)
+			fmt.Println(strings.Repeat("#", 80))
+			printBatchReport(cumulative, 0, 0, totalCatalog, totalCatalog)
+		} else {
+			start := *startFlag
+			if start >= totalCatalog {
+				start = 0
+			}
 			end := start + *limitFlag
 			if end > totalCatalog {
 				end = totalCatalog
 			}
 
+			batchNum := (start / *limitFlag) + 1
 			batchProblems := allProblems[start:end]
 			stats := runBatch(ctx, eval, batchProblems, probMap, *workersFlag, batchNum)
 			printBatchReport(stats, batchNum, start, end, totalCatalog)
+		}
+		return
+	}
 
-			cumulative.TotalTests += stats.TotalTests
+	// 3. Triplet Evaluation Mode
+	tripletData, err := os.ReadFile(*tripletsFlag)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read triplets file %s: %v\n", *tripletsFlag, err)
+		os.Exit(1)
+	}
+
+	var allTriplets []ProblemTriplet
+	if err := json.Unmarshal(tripletData, &allTriplets); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse triplets JSON: %v\n", err)
+		os.Exit(1)
+	}
+
+	totalTriplets := len(allTriplets)
+	if *allFlag {
+		fmt.Printf("\n=== RUNNING FULL CATALOG TRIPLET EVALUATION (%d PROBLEMS IN BATCHES OF %d) ===\n", totalTriplets, *limitFlag)
+		batchNum := 1
+		var cumulative TripletBatchStats
+		globalStart := time.Now()
+
+		for start := 0; start < totalTriplets; start += *limitFlag {
+			end := start + *limitFlag
+			if end > totalTriplets {
+				end = totalTriplets
+			}
+
+			batchTriplets := allTriplets[start:end]
+			stats := runTripletsBatch(ctx, eval, batchTriplets, probMap, *workersFlag, batchNum)
+			printTripletBatchReport(stats, batchNum, start, end, totalTriplets)
+
+			cumulative.TotalProblems += stats.TotalProblems
+			cumulative.TotalEvals += stats.TotalEvals
+			cumulative.V1Total += stats.V1Total
+			cumulative.V1Passed += stats.V1Passed
+			cumulative.V1Accepted += stats.V1Accepted
+			cumulative.V2Total += stats.V2Total
+			cumulative.V2Passed += stats.V2Passed
+			cumulative.V2Accepted += stats.V2Accepted
+			cumulative.V3Total += stats.V3Total
+			cumulative.V3Passed += stats.V3Passed
+			cumulative.V3Rejected += stats.V3Rejected
 			cumulative.TP += stats.TP
 			cumulative.TN += stats.TN
 			cumulative.FP += stats.FP
@@ -621,22 +1029,22 @@ func main() {
 
 		cumulative.Elapsed = time.Since(globalStart)
 		fmt.Println("\n" + strings.Repeat("#", 80))
-		fmt.Printf("   FINAL CUMULATIVE CATALOG EVALUATION REPORT (%d PROBLEMS)\n", totalCatalog)
+		fmt.Printf("   FINAL CUMULATIVE TRIPLET EVALUATION REPORT (%d PROBLEMS)\n", totalTriplets)
 		fmt.Println(strings.Repeat("#", 80))
-		printBatchReport(cumulative, 0, 0, totalCatalog, totalCatalog)
+		printTripletBatchReport(cumulative, 0, 0, totalTriplets, totalTriplets)
 	} else {
 		start := *startFlag
-		if start >= totalCatalog {
+		if start >= totalTriplets {
 			start = 0
 		}
 		end := start + *limitFlag
-		if end > totalCatalog {
-			end = totalCatalog
+		if end > totalTriplets {
+			end = totalTriplets
 		}
 
 		batchNum := (start / *limitFlag) + 1
-		batchProblems := allProblems[start:end]
-		stats := runBatch(ctx, eval, batchProblems, probMap, *workersFlag, batchNum)
-		printBatchReport(stats, batchNum, start, end, totalCatalog)
+		batchTriplets := allTriplets[start:end]
+		stats := runTripletsBatch(ctx, eval, batchTriplets, probMap, *workersFlag, batchNum)
+		printTripletBatchReport(stats, batchNum, start, end, totalTriplets)
 	}
 }

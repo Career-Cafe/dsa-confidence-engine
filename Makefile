@@ -69,13 +69,22 @@ test-coverage: templ ## Run tests and generate HTML coverage report
 test-e2e: ## Run end-to-end evaluation tests against an ephemeral server
 	./scripts/test_engine.sh
 
-eval-sample: ## Run batch evaluation on a fast 50-problem sample (~3 seconds)
+eval-sample: ## Run legacy batch evaluation on a fast 50-problem sample (~3 seconds)
+	$(GO) run ./cmd/batch_evaluator -legacy -start 0 -limit 50 -workers 32
+
+eval-batch: ## Run legacy batch evaluation on 200 problems (1,000 evaluations)
+	$(GO) run ./cmd/batch_evaluator -legacy -start 0 -limit 200 -workers 32
+
+eval-4k: ## Run legacy full catalog evaluation across all 4,052 problems (20,260 evaluations)
+	$(GO) run ./cmd/batch_evaluator -legacy -all -limit 200 -workers 48
+
+eval-triplets-sample: ## Run 3-tier explanation triplet evaluation on 50 problems (150 evaluations)
 	$(GO) run ./cmd/batch_evaluator -start 0 -limit 50 -workers 32
 
-eval-batch: ## Run batch evaluation on 200 problems (1,000 evaluations)
+eval-triplets-batch: ## Run 3-tier explanation triplet evaluation on 200 problems (600 evaluations)
 	$(GO) run ./cmd/batch_evaluator -start 0 -limit 200 -workers 32
 
-eval-4k: ## Run full catalog evaluation across all 4,052 problems (20,260 evaluations)
+eval-triplets-all: ## Run 3-tier explanation triplet evaluation across all 4,052 problems (12,156 evaluations)
 	$(GO) run ./cmd/batch_evaluator -all -limit 200 -workers 48
 
 clean: ## Remove build artifacts and temporary databases

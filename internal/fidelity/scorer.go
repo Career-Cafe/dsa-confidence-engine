@@ -242,7 +242,7 @@ func (s *Scorer) Score(
 		// Check if a belongs to the same ontological family as a claimed concept
 		isFamilyMatched := false
 		for _, c := range claimed {
-			if s.ontology != nil && (s.ontology.IsAncestor(c.ConceptID, a.ConceptID) || s.ontology.IsAncestor(a.ConceptID, c.ConceptID)) {
+			if s.ontology != nil && s.ontology.IsRelated(c.ConceptID, a.ConceptID) {
 				isFamilyMatched = true
 				break
 			}
@@ -251,7 +251,22 @@ func (s *Scorer) Score(
 			continue
 		}
 
-		if primarySet[a.ConceptID] && !isGenericConcept(a.ConceptID) {
+		// Check if candidate has already aligned with an accepted problem strategy
+		hasMatchedStrategy := false
+		for _, strat := range problem.AcceptedStrategies {
+			stratLow := strings.ToLower(strat)
+			for _, m := range matched {
+				if strings.Contains(stratLow, strings.ToLower(m.ConceptID)) {
+					hasMatchedStrategy = true
+					break
+				}
+			}
+			if hasMatchedStrategy {
+				break
+			}
+		}
+
+		if primarySet[a.ConceptID] && !isGenericConcept(a.ConceptID) && !hasMatchedStrategy {
 			extraPenalty += 0.15
 			extra = append(extra, model.ConceptMatch{
 				ConceptID:      a.ConceptID,

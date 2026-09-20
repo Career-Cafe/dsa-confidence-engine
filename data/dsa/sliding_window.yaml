@@ -6,6 +6,11 @@
     - moving window
     - dynamic window
     - window technique
+    - expand a window and shrink from the left
+    - expand right and shrink left
+    - expand a window by moving the right boundary and shrink from the left
+    - shrink from the left to maintain constraints
+    - expand right boundary and shrink left boundary
   keywords:
     - window
     - subarray

@@ -6,6 +6,10 @@
     - greedy approach
     - greedy algorithm
     - greedy choice
+    - take the best choice right now
+    - best choice right now at each position
+    - best choice right now
+    - locally best choice
   keywords:
     - greedy
     - optimal

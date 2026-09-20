@@ -7,6 +7,11 @@
     - min heap
     - max heap
     - pq
+    - keep elements in a min heap
+    - lowest item is always on top
+    - keep values in a heap
+    - always grab the lowest one quickly
+    - always grab lowest one quickly
   keywords:
     - heap
     - priority

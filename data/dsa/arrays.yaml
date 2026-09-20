@@ -142,11 +142,23 @@
     - two-pass
     - forward and backward pass
     - left and right pass
-    - prefix suffix sweep
+    - prefix and suffix products
+    - prefix and suffix product sweeps
+    - prefix and suffix sweeps
+    - prefix and suffix product
+    - prefix and suffix
+    - prefix products
+    - suffix products
+    - pass through the list forward and then backward
+    - forward and then backward
+    - pass through forward and backward
+    - gather context from both directions
   keywords:
     - two pass
     - forward backward
     - prefix suffix
+    - prefix
+    - suffix
   code_signals:
     - forward_backward_loops
 

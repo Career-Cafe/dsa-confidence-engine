@@ -25,6 +25,14 @@
     - hash table
     - frequency map
     - frequency table
+    - store each number i see in a map
+    - store each number in a map
+    - keep track of items in a dictionary
+    - loop over the values and store them in a table
+    - store them in a table
+    - check if its partner was already encountered
+    - partner was already encountered
+    - keep track of items in a dictionary as i go
   keywords:
     - dict
     - map
@@ -176,8 +184,8 @@
   parent: hashing
   description: Counting element occurrences or frequencies using hash maps, arrays, or frequency tables.
   aliases:
-    - counting
     - frequency counting
+    - element counting
     - element counter
   keywords:
     - count

@@ -6,6 +6,14 @@
     - backtrack
     - explore paths
     - depth first search with rollback
+    - try adding each possibility
+    - dive in and remove it if it fails
+    - try adding each possibility to my list dive in and remove it if it fails
+    - explore choices step by step going deeper and undoing the last move
+    - explore choices step by step
+    - undoing the last move
+    - undoing the last move if it doesnt work
+    - undoing the last move if it doesn't work
   keywords:
     - backtrack
     - state

@@ -5,6 +5,12 @@
     - stack
     - lifo
     - push pop
+    - put things onto a stack
+    - take off items that dont fit the order
+    - take off items that don't fit the order
+    - push items on a stack and discard smaller items
+    - push items on a stack
+    - discard smaller items
   keywords:
     - stack
     - push

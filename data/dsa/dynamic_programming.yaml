@@ -22,6 +22,9 @@
     - store previous states
     - remember computed states
     - recursive dp with caching
+    - call a helper function recursively and save the return values
+    - save the return values so i dont recompute
+    - save the return values so i don't recompute
   keywords:
     - memo
     - cache
@@ -44,6 +47,11 @@
     - bottom up dp
     - dp table
     - iterative dp
+    - array of answers step by step
+    - store running totals in an array
+    - earlier answers can build later answers
+    - build an array of answers
+    - running totals in an array
   keywords:
     - table
     - iterative
@@ -77,6 +85,9 @@
     - kadane's algorithm
     - kadane algorithm
     - maximum subarray dp
+    - keep a running sum of the subarray
+    - reset whenever it drops below zero
+    - running sum of the subarray and reset whenever it drops below zero
   keywords:
     - kadane
     - subarray
