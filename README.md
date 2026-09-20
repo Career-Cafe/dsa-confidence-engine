@@ -105,7 +105,10 @@ The ontology lives in modular YAML files (`data/dsa/*.yaml`) across 29 categorie
 | **Fast 50-Problem Sample** | `make eval-sample` | Evaluates 250 submissions across 50 problems in ~3.5 seconds |
 | **Full 200-Problem Batch** | `make eval-batch` | Evaluates 1,000 submissions across 200 problems in ~15 seconds |
 | **Full 4,052 Problem Catalog** | `make eval-4k` | Runs all 20,260 submissions across 4,052 problems (~6 minutes) |
-| **Local CI Verification Gate** | `make pre-commit` | Runs formatting check, static analysis, race-safe unit tests, and build |
+| **Triplet Benchmark (50)** | `make eval-triplets-sample` | Evaluates 150 3-tier explanation triplets across 50 problems |
+| **Triplet Benchmark (200)** | `make eval-triplets-batch` | Evaluates 600 3-tier explanation triplets across 200 problems |
+| **Triplet Benchmark (4,052)** | `make eval-triplets-all` | Evaluates 12,156 3-tier explanation triplets across all 4,052 catalog problems |
+| **Local CI Validation Gate** | `make pre-commit` | Runs formatting check, static analysis, race-safe unit tests, and build |
 | **View All Targets** | `make help` | Displays all formatted Makefile targets |
 
 ---
