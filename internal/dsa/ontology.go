@@ -97,6 +97,45 @@ func (o *Ontology) IsAncestor(ancestorID, descendantID string) bool {
 	return false
 }
 
+func (o *Ontology) IsRelated(id1, id2 string) bool {
+	if id1 == id2 {
+		return true
+	}
+	if o.IsAncestor(id1, id2) || o.IsAncestor(id2, id1) {
+		return true
+	}
+
+	o.mu.RLock()
+	defer o.mu.RUnlock()
+
+	if c1, ok := o.concepts[id1]; ok {
+		for _, rel := range c1.RelatedConcepts {
+			if rel == id2 {
+				return true
+			}
+		}
+	}
+	if c2, ok := o.concepts[id2]; ok {
+		for _, rel := range c2.RelatedConcepts {
+			if rel == id1 {
+				return true
+			}
+		}
+	}
+
+	// Canonical relationships between programming mechanisms and algorithmic paradigms
+	isRecursion := id1 == "recursion" || id2 == "recursion"
+	other := id1
+	if id1 == "recursion" {
+		other = id2
+	}
+	if isRecursion && (other == "dfs" || other == "backtracking" || other == "memoization" || other == "divide_and_conquer" || strings.Contains(other, "tree") || strings.Contains(other, "bst")) {
+		return true
+	}
+
+	return false
+}
+
 func (o *Ontology) GetLineage(id string) []string {
 	o.mu.RLock()
 	defer o.mu.RUnlock()

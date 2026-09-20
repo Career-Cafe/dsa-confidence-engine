@@ -7,6 +7,12 @@
     - bisect
     - logarithmic search
     - half interval search
+    - divide the list in halves
+    - divide the list in halves from the middle
+    - cut the search space in half
+    - cut the search space in half repeatedly
+    - halving the search space
+    - cut search space in half
   keywords:
     - mid
     - binary

@@ -100,7 +100,8 @@
   parent: math
   description: Computing combinations (n choose k) using precomputed factorials and modular inverse.
   aliases:
-    - combinations
+    - combinatorics combinations
+    - binomial combinations
     - n choose k
     - ncr
     - binomial coefficient

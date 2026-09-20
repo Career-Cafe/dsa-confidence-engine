@@ -4,13 +4,17 @@
   aliases:
     - sorting
     - sort
-    - sorted
-    - ordered
+    - sort the array
+    - sort elements
+    - in-place sort
     - order by
+    - order the items from smallest to largest
+    - order items from smallest to largest
+    - smallest to largest first
+    - order the items from smallest to largest first
   keywords:
     - sort
-    - sorted
-    - order
+    - sorting
     - arrange
   code_signals:
     - list_sort

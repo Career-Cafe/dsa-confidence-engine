@@ -6,6 +6,11 @@
     - trie
     - prefix tree
     - retrieval tree
+    - store letters in a tree of dictionaries
+    - tree of dictionaries for fast prefix
+    - build a letter tree to look up words
+    - letter tree to look up words
+    - letter tree
   keywords:
     - trie
     - prefix

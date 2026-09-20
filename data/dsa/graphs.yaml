@@ -22,6 +22,13 @@
     - dfs
     - depth first search
     - depth first traversal
+    - go down every branch to the bottom
+    - traverse each branch down as far as possible
+    - traverse each branch down
+    - traverse each branch
+    - explore each branch to the bottom
+    - recursively while marking where ive been
+    - marking where i have been
   keywords:
     - dfs
     - depth
@@ -43,6 +50,11 @@
     - breadth first search
     - breadth first traversal
     - level order
+    - inspect things layer by layer
+    - check neighbors level by level
+    - explore layer by layer outward
+    - layer by layer outward
+    - level by level using a queue
   keywords:
     - bfs
     - breadth
@@ -69,6 +81,9 @@
     - prerequisite ordering
     - zero indegree queue
     - peeling leaves
+    - resolve courses based on zero requirements
+    - zero requirements first
+    - courses with zero requirements
   keywords:
     - topological
     - indegree
@@ -94,6 +109,11 @@
     - disjoint set union
     - path compression
     - union by rank
+    - group connected items together into sets
+    - find their group leaders
+    - group elements into connected sets
+    - group connected items into sets
+    - group elements into connected sets using union and find helper functions
   keywords:
     - union
     - find

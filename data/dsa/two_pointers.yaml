@@ -33,9 +33,14 @@
     - opposite end scan
     - convergent pointers
     - both ends
-    - opposite ends
     - pointers from both ends
     - pointers from opposite ends
+    - move two indices inward
+    - move two indices inward from the start and end
+    - two markers moving towards each other
+    - markers moving towards each other
+    - markers moving towards each other to compare ends
+    - two markers moving towards each other to compare ends
   keywords:
     - inward
     - left
